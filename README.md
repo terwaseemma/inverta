@@ -1,22 +1,14 @@
-# Welcome to your Lovable project
+# Inverta App
 
-## Project info
+Tools to empower solar installers and clean energy practitioners to educate customers and close sales easily.
 
-**URL**: https://lovable.dev/projects/a2fdaa7c-2b0d-459b-8464-e93bd3572610
+## Links
 
-## How can I edit this code?
+- Sign up / Calculator / Info: https://bit.ly/Inverta
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/a2fdaa7c-2b0d-459b-8464-e93bd3572610) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+This project uses Node.js, Vite, React, TypeScript, Tailwind CSS, and shadcn-ui.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -36,13 +28,13 @@ npm i
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Editing in GitHub
 
 - Navigate to the desired file(s).
 - Click the "Edit" button (pencil icon) at the top right of the file view.
 - Make your changes and commit the changes.
 
-**Use GitHub Codespaces**
+## GitHub Codespaces
 
 - Navigate to the main page of your repository.
 - Click on the "Code" button (green button) near the top right.
@@ -50,7 +42,7 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## Tech Stack
 
 This project is built with:
 
@@ -60,14 +52,11 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
+## Deployment
 
-Simply open [Lovable](https://lovable.dev/projects/a2fdaa7c-2b0d-459b-8464-e93bd3572610) and click on Share -> Publish.
+You can deploy with any static hosting provider (e.g., Netlify, Vercel, Cloudflare Pages):
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```sh
+npm run build
+# then deploy the `dist/` directory
+```
