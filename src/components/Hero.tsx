@@ -11,7 +11,7 @@ const Hero = () => {
           <div className="space-y-8 text-center md:text-left relative z-10">
             {/* Inverta wordmark */}
             <div className="flex justify-center md:justify-start">
-              <img src={wordmarkImage} alt="Inverta" className="h-4 md:h-6 w-auto" />
+              <img src={wordmarkImage} alt="Inverta" className="h-4 md:h-6 w-auto wordmark-gray" />
             </div>
 
             {/* Main headline */}
@@ -26,7 +26,7 @@ const Hero = () => {
 
             {/* Subtext */}
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-lg mx-auto md:mx-0">
-              Create a solar calculator, share to customers. Buy and sell quality solar products.
+              Create an AI powered solar calculator, share to customers, Instant quotes, Buy and sell quality solar products.
             </p>
 
             {/* CTA Button */}
