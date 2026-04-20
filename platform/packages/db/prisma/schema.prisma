@@ -1,0 +1,245 @@
+// Inverta — multi-tenant schema
+// Tenant: Installer. Every tenant-scoped row carries installerId.
+// Money stored as integer kobo. Capacities stored with their unit column.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum BusinessType {
+  INSTALLER
+  VENDOR
+  BOTH
+}
+
+enum CatalogItemType {
+  INVERTER
+  BATTERY
+  PANEL
+  ACCESSORY
+}
+
+enum BatteryChemistry {
+  LITHIUM
+  AGM
+  GEL
+}
+
+enum CapacityUnit {
+  KVA // inverter
+  KWH // battery energy
+  AH // battery charge (paired with voltage)
+  W // panel wattage
+  UNIT // accessory count
+}
+
+enum LeadStatus {
+  NEW
+  VIEWED
+  PROPOSAL_SENT
+  CONVERTED
+  LOST
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+}
+
+enum NotificationType {
+  NEW_LEAD
+  PROPOSAL_VIEWED
+  PROPOSAL_ACCEPTED
+  SYSTEM
+}
+
+enum ProductType {
+  GENERATOR
+  KIT
+  PART
+}
+
+enum AppliancePresetCategory {
+  LIGHTING
+  COOLING
+  KITCHEN
+  ENTERTAINMENT
+  COMPUTING
+  OTHER
+}
+
+model Installer {
+  id                     String       @id @default(cuid())
+  authUserId             String?      @unique // Supabase auth.users.id
+  businessName           String
+  businessType           BusinessType @default(INSTALLER)
+  slug                   String       @unique
+  contactName            String
+  email                  String       @unique
+  phone                  String
+  passwordHash           String? // only used if we ever move off Supabase auth
+  region                 String // Nigerian state — drives default sun hours
+  logoUrl                String?
+  websiteUrl             String?
+  bio                    String?
+  address                String?
+  markupPercent          Int          @default(15) // e.g. 15 means +15%
+  installationFeeKobo    Int          @default(0) // flat fee; percentage variant handled at quote time
+  installationFeePercent Int? // if set, used instead of flat fee
+  emailVerifiedAt        DateTime?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  catalogItems   CatalogItem[]
+  calculatorLink CalculatorLink?
+  leads          Lead[]
+  proposals      Proposal[]
+  products       Product[]
+  notifications  Notification[]
+
+  @@index([slug])
+}
+
+model CatalogItem {
+  id          String            @id @default(cuid())
+  installerId String
+  type        CatalogItemType
+  brand       String
+  model       String
+  capacity    Decimal           @db.Decimal(12, 3) // numeric, paired with unit
+  unit        CapacityUnit
+  voltage     Int? // for AH batteries
+  chemistry   BatteryChemistry?
+  priceKobo   Int
+  notes       String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  installer Installer @relation(fields: [installerId], references: [id], onDelete: Cascade)
+
+  @@index([installerId, type])
+  @@index([installerId, isActive])
+}
+
+model CalculatorLink {
+  id          String   @id @default(cuid())
+  installerId String   @unique
+  slug        String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  installer Installer @relation(fields: [installerId], references: [id], onDelete: Cascade)
+}
+
+model Lead {
+  id                 String     @id @default(cuid())
+  installerId        String
+  customerName       String
+  customerEmail      String
+  customerPhone      String
+  referralSource     String?
+  // Frozen at submission time so audits and re-runs stay faithful.
+  inputSnapshot      Json
+  resultSnapshot     Json
+  status             LeadStatus @default(NEW)
+  notes              String?
+  submittedIp        String?
+  submittedUserAgent String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  installer Installer  @relation(fields: [installerId], references: [id], onDelete: Cascade)
+  proposals Proposal[]
+
+  @@index([installerId, status])
+  @@index([installerId, createdAt])
+}
+
+model Proposal {
+  id            String         @id @default(cuid())
+  leadId        String
+  installerId   String
+  pdfUrl        String? // signed URL to R2 object (time-limited)
+  pdfObjectKey  String? // R2 object key — source of truth
+  totalKobo     Int
+  validUntil    DateTime?
+  customMessage String?
+  status        ProposalStatus @default(DRAFT)
+  sentAt        DateTime?
+  viewedAt      DateTime?
+  acceptedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  lead      Lead               @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  installer Installer          @relation(fields: [installerId], references: [id], onDelete: Cascade)
+  items     ProposalLineItem[]
+
+  @@index([installerId, status])
+  @@index([leadId])
+}
+
+model ProposalLineItem {
+  id            String  @id @default(cuid())
+  proposalId    String
+  name          String
+  description   String?
+  quantity      Int
+  unitPriceKobo Int
+  sortOrder     Int     @default(0)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+}
+
+model AppliancePreset {
+  id              String                  @id @default(cuid())
+  name            String                  @unique
+  defaultWattageW Int
+  category        AppliancePresetCategory
+  // Not tenant-scoped — this is shared global reference data.
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  installerId String
+  type        ProductType
+  name        String
+  description String?
+  priceKobo   Int
+  imageUrl    String?
+  isAvailable Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  installer Installer @relation(fields: [installerId], references: [id], onDelete: Cascade)
+
+  @@index([installerId, isAvailable])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  installerId String
+  type        NotificationType
+  title       String
+  message     String
+  linkUrl     String?
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  installer Installer @relation(fields: [installerId], references: [id], onDelete: Cascade)
+
+  @@index([installerId, read])
+  @@index([installerId, createdAt])
+}
