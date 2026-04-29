@@ -79,6 +79,8 @@ enum AppliancePresetCategory {
 
 model Installer {
   id                     String       @id @default(cuid())
+  // Nullable so the seed can create a demo installer without a real Supabase
+  // user; production signups always populate this.
   authUserId             String?      @unique // Supabase auth.users.id
   businessName           String
   businessType           BusinessType @default(INSTALLER)
@@ -86,7 +88,6 @@ model Installer {
   contactName            String
   email                  String       @unique
   phone                  String
-  passwordHash           String? // only used if we ever move off Supabase auth
   region                 String // Nigerian state — drives default sun hours
   logoUrl                String?
   websiteUrl             String?
@@ -96,6 +97,8 @@ model Installer {
   installationFeeKobo    Int          @default(0) // flat fee; percentage variant handled at quote time
   installationFeePercent Int? // if set, used instead of flat fee
   emailVerifiedAt        DateTime?
+  // Null = onboarding wizard not yet completed; gates /dashboard access.
+  onboardedAt            DateTime?
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
 

@@ -126,7 +126,7 @@ export function Calculator({ slug, installerName, presets }: Props) {
       <StepNav step={step} />
 
       <div className="mx-auto mt-6 max-w-3xl">
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
+        <div className="rounded-xl border bg-card/80 p-6 shadow-2xl backdrop-blur">
           {step === 1 && (
             <Step1
               monthlyElectricityBill={monthlyElectricityBill}
@@ -180,7 +180,7 @@ export function Calculator({ slug, installerName, presets }: Props) {
 
         <div className="mt-6 flex items-center justify-between">
           <button
-            className="inline-flex h-10 items-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-muted disabled:opacity-50"
+            className="inline-flex h-11 items-center rounded-md border border-border bg-background/40 px-4 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary disabled:opacity-50"
             disabled={step === 1 || submitting}
             onClick={() => setStep((s) => (s - 1) as Step)}
           >
@@ -188,7 +188,7 @@ export function Calculator({ slug, installerName, presets }: Props) {
           </button>
           {step < 4 ? (
             <button
-              className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              className="signup-gradient-hover glass-button inline-flex h-11 items-center rounded-md px-6 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-50"
               disabled={!canAdvance || submitting}
               onClick={() => setStep((s) => (s + 1) as Step)}
             >
@@ -196,7 +196,7 @@ export function Calculator({ slug, installerName, presets }: Props) {
             </button>
           ) : (
             <button
-              className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              className="signup-gradient-hover glass-button inline-flex h-11 items-center rounded-md px-6 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-50"
               disabled={!canAdvance || submitting}
               onClick={onSubmit}
             >
@@ -388,13 +388,13 @@ function Step2(props: {
         </p>
       </div>
 
-      <div className="rounded-md bg-muted/40 p-4 text-sm">
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-wide text-muted-foreground">
               Total load
             </div>
-            <div className="font-mono text-2xl font-semibold">
+            <div className="font-mono text-2xl font-semibold orange-text">
               {totals.loadW.toLocaleString()} W
             </div>
           </div>
@@ -402,7 +402,7 @@ function Step2(props: {
             <div className="text-xs uppercase tracking-wide text-muted-foreground">
               Daily energy
             </div>
-            <div className="font-mono text-2xl font-semibold">
+            <div className="font-mono text-2xl font-semibold orange-text">
               {(totals.dailyWh / 1000).toFixed(1)} kWh
             </div>
           </div>
@@ -653,9 +653,9 @@ function Results({
   return (
     <div className="container py-8">
       <div className="mx-auto max-w-3xl space-y-6">
-        <div className="rounded-lg border bg-card p-6">
+        <div className="rounded-xl border bg-card/80 p-6 backdrop-blur">
           <div className="text-sm text-muted-foreground">Your solar plan from</div>
-          <h1 className="text-2xl font-semibold">{data.installer.businessName}</h1>
+          <h1 className="text-2xl font-semibold orange-text">{data.installer.businessName}</h1>
         </div>
 
         {r.warnings.length > 0 && (
@@ -745,30 +745,25 @@ function Results({
           </SummaryCard>
         )}
 
-        <div className="rounded-lg border border-primary/40 bg-primary/5 p-6">
+        <div className="rounded-xl border border-primary/40 bg-primary/5 p-6 backdrop-blur">
           <h3 className="text-lg font-semibold">
-            Ready for a formal proposal from {data.installer.businessName}?
+            <span className="orange-text">{data.installer.businessName}</span> has your details.
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            They've received your details. Create an account to save this plan and track their proposal.
+            They'll review your sizing and reach out with a formal proposal. In the
+            meantime you can reach them directly:
           </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {/* Account creation flow is a later slice — link placeholder */}
-            <Link
-              href="/signup"
-              className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Save & create account
-            </Link>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            <span>📞 {data.installer.phone}</span>
+            <span>✉️ {data.installer.email}</span>
+          </div>
+          <div className="mt-5">
             <button
               onClick={onRestart}
               className="inline-flex h-10 items-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-muted"
             >
               Start over
             </button>
-          </div>
-          <div className="mt-3 text-xs text-muted-foreground">
-            Or reach them directly: {data.installer.phone} · {data.installer.email}
           </div>
         </div>
       </div>
@@ -826,9 +821,9 @@ function SummaryCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border bg-card p-6 shadow-sm">
+    <section className="rounded-xl border bg-card/80 p-6 shadow-xl backdrop-blur">
       <div className="mb-4 flex items-center gap-2">
-        <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/10 text-primary">
+        <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/15 text-primary">
           {icon}
         </div>
         <h2 className="font-semibold">{title}</h2>

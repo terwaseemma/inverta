@@ -18,7 +18,7 @@ platform/
 
 ## Current build state
 
-**Done (foundation + calculator vertical slice):**
+**Slice 1 — foundation + calculator (done):**
 - Turborepo workspace wired
 - Prisma schema with all tenant-scoped models
 - Seed: demo installer (`demo-solar`), catalog (inverters/batteries/panels), appliance presets
@@ -27,14 +27,25 @@ platform/
 - Public calculator at `/calc/[slug]` — 4 steps + live results
 - Submit endpoint: engine + lead persistence + per-IP rate limit
 
+**Slice 2 — auth + onboarding step 1 + dashboard skeleton (done):**
+- Brand port: dark theme + orange (`18 100% 60%`) + hero gradient + glass buttons, copied verbatim from the marketing site
+- Marketing assets (`icon.png`, `wordmark.png`) live in `apps/web/public/`
+- Supabase SSR auth: server + browser clients, middleware that refreshes the session and gates `/dashboard` and `/onboarding`
+- `/signup` form → Supabase user + Installer row + reserved unique slug + auto CalculatorLink
+- `/login` with redirect to `/dashboard` or `/onboarding` based on `onboardedAt`
+- `/auth/callback` handles email-verify code exchange
+- `/verify-email` notice page (post-signup)
+- `/onboarding` step 1 (business profile: logo URL, website, address, bio) — sets `onboardedAt`
+- `/dashboard` skeleton: stat cards, calculator link with copy-to-clipboard, sidebar nav, sign-out
+- Schema additions: `Installer.onboardedAt`, dropped `passwordHash` (Supabase owns auth)
+
 **Next slices (in build order):**
-1. Auth (installer signup/login/email verify via Supabase)
-2. Onboarding wizard (3 steps)
-3. Catalog CRUD
-4. Installer dashboard (leads, proposals, settings)
-5. Proposal PDF generation + R2 upload + Resend delivery
-6. Product store
-7. NestJS API migration (optional — Next API routes work for MVP)
+1. Onboarding steps 2 & 3 — catalog quick-add + calculator link customization
+2. Catalog CRUD UI (full editor under `/dashboard/catalog`)
+3. Leads inbox + lead detail view
+4. Proposal builder + PDF generation + R2 upload + Resend delivery
+5. Product store
+6. NestJS API migration (optional — Next API routes work for MVP)
 
 See `../README.md` at the repo root for the marketing site.
 
