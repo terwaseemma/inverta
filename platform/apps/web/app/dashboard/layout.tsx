@@ -1,0 +1,56 @@
+import Link from 'next/link';
+import { LayoutDashboard, Package, Users, FileText, Store, Settings } from 'lucide-react';
+import { Wordmark } from '@/components/brand/Wordmark';
+import { LogoutButton } from './logout-button';
+import { requireOnboardedInstaller } from '@/lib/auth';
+
+const NAV = [
+  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+  { href: '/dashboard/leads', label: 'Leads', icon: Users },
+  { href: '/dashboard/proposals', label: 'Proposals', icon: FileText },
+  { href: '/dashboard/catalog', label: 'Catalog', icon: Package },
+  { href: '/dashboard/store', label: 'Store', icon: Store },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+];
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { installer, email } = await requireOnboardedInstaller();
+
+  return (
+    <div className="min-h-screen">
+      <div className="grid min-h-screen lg:grid-cols-[240px_1fr]">
+        <aside className="hidden border-r border-sidebar-border bg-sidebar lg:flex lg:flex-col">
+          <div className="flex h-16 items-center border-b border-sidebar-border px-6">
+            <Wordmark size="sm" />
+          </div>
+          <nav className="flex-1 space-y-1 p-3">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="border-t border-sidebar-border p-4">
+            <div className="mb-3 text-xs">
+              <div className="font-medium text-sidebar-foreground">
+                {installer.businessName}
+              </div>
+              <div className="truncate text-sidebar-foreground/60">{email}</div>
+            </div>
+            <LogoutButton />
+          </div>
+        </aside>
+        <main className="bg-background">{children}</main>
+      </div>
+    </div>
+  );
+}

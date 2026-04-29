@@ -47,6 +47,7 @@ async function seedDemoInstaller() {
       markupPercent: 15,
       installationFeeKobo: 150_000_00, // NGN 150,000
       emailVerifiedAt: new Date(),
+      onboardedAt: new Date(),
       calculatorLink: {
         create: { slug: 'demo-solar' },
       },
