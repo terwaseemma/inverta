@@ -77,7 +77,7 @@ export default function AboutPage() {
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Link
-                href={`/calc/${process.env.NEXT_PUBLIC_DEFAULT_CALCULATOR_SLUG ?? 'boost-power'}`}
+                href={`/calc/${process.env.NEXT_PUBLIC_DEFAULT_CALCULATOR_SLUG ?? 'boostsolar'}`}
                 className="signup-gradient-hover glass-button inline-flex h-11 items-center gap-2 rounded-md px-6 text-sm font-medium text-foreground transition-all duration-200"
               >
                 <Zap className="h-4 w-4" /> Calculate your solar

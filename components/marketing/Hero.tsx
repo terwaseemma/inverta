@@ -46,7 +46,7 @@ export function Hero() {
                 </Button>
               </Link>
               <Link
-                href={`/calc/${process.env.NEXT_PUBLIC_DEFAULT_CALCULATOR_SLUG ?? 'boost-power'}`}
+                href={`/calc/${process.env.NEXT_PUBLIC_DEFAULT_CALCULATOR_SLUG ?? 'boostsolar'}`}
                 className="inline-block"
               >
                 <Button
