@@ -7,7 +7,8 @@
   ],
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "npm run db:generate && next build",
+    "postinstall": "npm run db:generate",
     "start": "next start -p 3000",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
