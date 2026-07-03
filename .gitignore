@@ -1,16 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+
+# Turbo
+.turbo/
+
+# Build output
+dist/
+dist-ssr/
+build/
+
 # Logs
 logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.log
 
-node_modules
-dist
-dist-ssr
-*.local
+# Env — never commit secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+!.env.example
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Coverage
+coverage/
+
+# Claude Code session data
+.claude/
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +53,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Old-layout leftovers — an empty platform/ shell can linger due to Windows
+# file locks after the monorepo consolidation. Safe to ignore.
+platform/
