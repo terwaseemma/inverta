@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Inverta brand tokens. All colors HSL.
+   :root  = light theme
+   .dark  = dark theme (the brand default — applied by next-themes)
+   Orange stays as the primary/accent across both. */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 230 15% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 230 15% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 15% 12%;
+
+    --primary: 18 100% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 230 15% 12%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 230 8% 45%;
+
+    --accent: 18 100% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 18 100% 60%;
+
+    --radius: 0.5rem;
+
+    --orange: 18 100% 60%;
+    --orange-foreground: 0 0% 100%;
+
+    --hero-gradient: radial-gradient(
+      ellipse at center,
+      hsl(30 100% 96%) 0%,
+      hsl(0 0% 100%) 60%
+    );
+    --button-gradient: linear-gradient(
+      135deg,
+      hsl(var(--muted)),
+      hsl(var(--muted-foreground) / 0.1)
+    );
+
+    --sidebar-background: 210 40% 98%;
+    --sidebar-foreground: 230 15% 20%;
+    --sidebar-primary: 18 100% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 230 15% 20%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 18 100% 60%;
+  }
+
+  .dark {
+    --background: 230 15% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 230 15% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 230 15% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 18 100% 60%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 230 15% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 230 15% 15%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 18 100% 60%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 230 15% 20%;
+    --input: 230 15% 20%;
+    --ring: 18 100% 60%;
+
+    --orange: 18 100% 60%;
+    --orange-foreground: 0 0% 98%;
+
+    --hero-gradient: radial-gradient(
+      ellipse at center,
+      hsl(250 60% 15%) 0%,
+      hsl(230 25% 8%) 60%
+    );
+
+    --sidebar-background: 230 15% 10%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 18 100% 60%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 230 15% 15%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 230 15% 20%;
+    --sidebar-ring: 18 100% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background: var(--hero-gradient);
+    min-height: 100vh;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .input {
+    @apply flex h-10 w-full rounded-md border border-input bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .hero-gradient {
+    background: var(--hero-gradient);
+  }
+
+  .orange-text {
+    color: hsl(var(--orange));
+  }
+
+  .glass-button {
+    background: var(--button-gradient);
+    backdrop-filter: blur(10px);
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Hover treatment for primary CTAs — the marketing site's signature look. */
+  .signup-gradient-hover:hover {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--orange)) 0%,
+      hsl(18 100% 70%) 50%,
+      hsl(var(--orange)) 100%
+    );
+    color: hsl(var(--primary-foreground));
+    border-color: transparent;
+  }
+
+  /* Wordmark image (originally white/transparent) filtered so it reads on
+     either background — mid-gray works against both. */
+  .wordmark-gray {
+    filter: brightness(0) saturate(100%) invert(37%);
+  }
+}
