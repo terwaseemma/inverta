@@ -1,5 +1,6 @@
 import { requireOnboardedInstaller } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAppUrl } from '@/lib/app-url';
 import {
   ProfileForm,
   PricingForm,
@@ -15,7 +16,7 @@ export default async function SettingsPage() {
     where: { installerId: installer.id },
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = getAppUrl();
 
   return (
     <div className="container max-w-3xl py-10">

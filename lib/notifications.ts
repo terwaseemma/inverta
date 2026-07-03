@@ -2,6 +2,7 @@ import 'server-only';
 
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
+import { getAppUrl } from '@/lib/app-url';
 
 // Fire-and-forget installer notifications: always writes the in-app row,
 // sends email only when Resend is configured. Callers should not await
@@ -27,7 +28,7 @@ export async function notifyNewLead(params: {
     },
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = getAppUrl();
   await sendEmail({
     to: installerEmail,
     subject: `New solar lead: ${customerName}`,

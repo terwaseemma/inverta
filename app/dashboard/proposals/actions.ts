@@ -6,6 +6,7 @@ import { schemas, nairaToKobo } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
+import { getAppUrl } from '@/lib/app-url';
 import { parseResultSnapshot } from '@/lib/lead-utils';
 
 const PROPOSAL_VALIDITY_DAYS = 30;
@@ -198,7 +199,7 @@ export async function sendProposalAction(formData: FormData): Promise<void> {
   ]);
 
   // Customer email with the public capability link (cuid is unguessable).
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = getAppUrl();
   await sendEmail({
     to: proposal.lead.customerEmail,
     subject: `Your solar proposal from ${installer.businessName}`,

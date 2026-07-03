@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Check, CreditCard, Package, Rocket, Sparkles, User } from 'lucide-react';
 import { requireInstaller } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAppUrl } from '@/lib/app-url';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { cn } from '@/lib/utils';
 import { ProfileStepForm, PaymentStepForm, FinishForm } from './wizard-forms';
@@ -173,7 +174,7 @@ export default async function OnboardingPage({
                 />
                 <FinishForm
                   defaultSlug={calcLink?.slug ?? installer.slug}
-                  appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ''}
+                  appUrl={getAppUrl()}
                 />
               </>
             )}

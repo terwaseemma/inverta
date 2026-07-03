@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowUpRight, PackageOpen } from 'lucide-react';
 import { requireOnboardedInstaller } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAppUrl } from '@/lib/app-url';
 import { CopyLink } from './copy-button';
 
 export const metadata = { title: 'Dashboard · Inverta' };
@@ -42,7 +43,7 @@ export default async function DashboardOverviewPage() {
   );
 
   const calcUrl = calcLink
-    ? `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/calc/${calcLink.slug}`
+    ? `${getAppUrl()}/calc/${calcLink.slug}`
     : null;
 
   return (

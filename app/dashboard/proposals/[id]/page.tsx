@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { requireOnboardedInstaller } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAppUrl } from '@/lib/app-url';
 import { ProposalEditor } from './proposal-editor';
 
 export const metadata = { title: 'Proposal · Inverta' };
@@ -58,7 +59,7 @@ export default async function ProposalEditPage({
             unitPriceNaira: i.unitPriceKobo / 100,
           })),
         }}
-        appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ''}
+        appUrl={getAppUrl()}
       />
     </div>
   );
