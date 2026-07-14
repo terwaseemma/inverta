@@ -55,9 +55,15 @@ export async function signupAction(
     password: data.password,
     options: {
       emailRedirectTo: `${origin}/auth/callback?next=/onboarding`,
+      // display_name / full_name are the keys the Supabase dashboard reads
+      // for its "Display name" column; the rest make the user record
+      // self-describing in the auth admin UI. The Installer table remains
+      // the app's source of truth.
       data: {
-        businessName: data.businessName,
-        contactName: data.contactName,
+        display_name: data.contactName,
+        full_name: data.contactName,
+        phone: data.phone,
+        business_name: data.businessName,
       },
     },
   });
