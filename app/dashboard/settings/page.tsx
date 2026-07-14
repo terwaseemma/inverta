@@ -7,6 +7,7 @@ import {
   PaymentForm,
   CalculatorLinkForm,
 } from './settings-forms';
+import { DangerZone } from './danger-zone';
 
 export const metadata = { title: 'Settings · Inverta' };
 
@@ -87,6 +88,11 @@ export default async function SettingsPage() {
               isActive: calcLink?.isActive ?? true,
             }}
           />
+        </section>
+
+        <section className="rounded-xl border border-destructive/30 bg-card/80 p-6 backdrop-blur">
+          <h2 className="mb-4 font-semibold text-destructive">Danger zone</h2>
+          <DangerZone businessName={installer.businessName} />
         </section>
       </div>
     </div>

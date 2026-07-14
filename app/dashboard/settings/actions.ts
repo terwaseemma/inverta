@@ -1,9 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { schemas, nairaToKobo, slugify } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export interface SettingsFormState {
   error?: string;
@@ -165,4 +168,33 @@ export async function saveCalculatorLinkAction(
   revalidatePath('/dashboard/settings');
   revalidatePath('/dashboard');
   return { success: true };
+}
+
+// Permanently deletes the account: tenant data first (cascade wipes catalog,
+// leads, proposals, products, notifications), then the Supabase login, then
+// the session. Requires the user to have typed DELETE in the confirm field.
+export async function deleteAccountAction(
+  _prev: SettingsFormState,
+  formData: FormData,
+): Promise<SettingsFormState> {
+  const { installer, authUserId } = await requireInstaller();
+
+  if (String(formData.get('confirm') ?? '').trim() !== 'DELETE') {
+    return { fieldErrors: { confirm: 'Type DELETE (in capitals) to confirm.' } };
+  }
+
+  await prisma.installer.delete({ where: { id: installer.id } });
+
+  try {
+    const admin = createSupabaseAdminClient();
+    await admin.auth.admin.deleteUser(authUserId);
+  } catch (err) {
+    // The tenant data is gone either way; a stranded login can't reach any
+    // data and can be removed from the Supabase dashboard.
+    console.error('[settings] auth user deletion failed:', err);
+  }
+
+  const supabase = createSupabaseServerClient();
+  await supabase.auth.signOut();
+  redirect('/');
 }

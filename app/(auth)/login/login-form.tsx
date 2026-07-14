@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { loginAction, type LoginFormState } from './actions';
 import { cn } from '@/lib/utils';
@@ -25,7 +26,15 @@ export function LoginForm({ next }: { next?: string }) {
         )}
       </label>
       <label className="block space-y-1.5">
-        <span className="text-sm font-medium">Password</span>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Password</span>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <input
           name="password"
           type="password"
