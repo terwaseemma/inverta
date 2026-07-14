@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
+import { PostHogProvider } from '@/components/analytics/PostHogProvider';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import './globals.css';
 
@@ -21,14 +22,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // `dark` class on <html> before hydration without React complaining.
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <PostHogProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </PostHogProvider>
         <Analytics />
       </body>
     </html>

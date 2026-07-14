@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { PostHogIdentify } from '@/components/analytics/PostHogIdentify';
 import { LogoutButton } from './logout-button';
 import { MobileNav } from './mobile-nav';
 import { NAV_ITEMS } from './nav';
@@ -15,6 +16,11 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
+      <PostHogIdentify
+        installerId={installer.id}
+        email={email}
+        businessName={installer.businessName}
+      />
       {/* Mobile top bar — visible only < lg */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/40 bg-background/90 px-3 backdrop-blur lg:hidden">
         <MobileNav installerName={installer.businessName} email={email} />
