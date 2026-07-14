@@ -6,7 +6,7 @@ export const metadata = { title: 'Sign in · Inverta' };
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string };
+  searchParams: { next?: string; error?: string };
 }) {
   return (
     <div className="space-y-6">
@@ -16,6 +16,12 @@ export default function LoginPage({
           Sign in to manage your leads and proposals.
         </p>
       </div>
+      {searchParams.error === 'verify_failed' && (
+        <div className="rounded-md border border-accent/40 bg-accent/10 p-3 text-sm">
+          That verification link has expired or was already used. Sign in below — if
+          your email isn&apos;t confirmed yet, we&apos;ll send you a fresh link.
+        </div>
+      )}
       <LoginForm next={searchParams.next} />
       <p className="text-center text-sm text-muted-foreground">
         New here?{' '}
