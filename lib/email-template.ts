@@ -24,9 +24,9 @@ export function emailLayout({
 <body style="margin:0;padding:0;background-color:#f4f4f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
     <div style="padding:20px 24px;background-color:${NAVY};border-radius:10px 10px 0 0;">
-      <span style="font-size:18px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">
-        Inverta<span style="color:${ORANGE};">.</span>app
-      </span>
+      <!-- Raw wordmark is white-on-transparent — made for this dark header.
+           Absolute production URL: email clients can't load relative assets. -->
+      <img src="https://inverta.app/wordmark.png" alt="Inverta" height="16" style="display:block;height:16px;width:auto;border:0;" />
     </div>
     <div style="height:4px;background-color:${ORANGE};"></div>
     <div style="background-color:#ffffff;padding:28px 24px;border-radius:0 0 10px 10px;border:1px solid #e3e3e8;border-top:none;">
