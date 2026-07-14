@@ -1,9 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { schemas, nairaToKobo, STARTER_CATALOG } from '@inverta/shared';
+import { schemas, nairaToKobo } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
+import { copyItemsToInstaller, getActiveMasterItems } from '@/lib/master-catalog';
 
 export interface CatalogFormState {
   error?: string;
@@ -112,23 +113,53 @@ export async function loadStarterCatalogAction(
     return { error: 'Your catalog already has items — the starter set is only for empty catalogs.' };
   }
 
-  await prisma.catalogItem.createMany({
-    data: STARTER_CATALOG.map((item) => ({
-      installerId: installer.id,
-      type: item.type,
-      brand: item.brand,
-      model: item.model,
-      capacity: item.capacity,
-      unit: item.unit,
-      voltage: item.voltage ?? null,
-      storageKwh: item.storageKwh ?? null,
-      chemistry: item.chemistry ?? null,
-      priceKobo: item.priceKobo,
-      notes: item.notes ?? null,
-    })),
-  });
+  // Admin-curated platform catalog, or the built-in template until one exists.
+  await copyItemsToInstaller(installer.id, await getActiveMasterItems());
 
   revalidatePath('/dashboard/catalog');
   revalidatePath('/dashboard');
   return { success: true };
+}
+
+// Copy a single platform product into the installer's catalog.
+export async function importMasterItemAction(formData: FormData): Promise<void> {
+  const { installer } = await requireInstaller();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+
+  const master = await prisma.masterCatalogItem.findFirst({
+    where: { id, isActive: true },
+  });
+  if (!master) return;
+
+  // Skip silently if they already imported this exact product.
+  const duplicate = await prisma.catalogItem.findFirst({
+    where: {
+      installerId: installer.id,
+      type: master.type,
+      brand: master.brand,
+      model: master.model,
+    },
+    select: { id: true },
+  });
+  if (duplicate) return;
+
+  await prisma.catalogItem.create({
+    data: {
+      installerId: installer.id,
+      type: master.type,
+      brand: master.brand,
+      model: master.model,
+      capacity: master.capacity,
+      unit: master.unit,
+      voltage: master.voltage,
+      storageKwh: master.storageKwh,
+      chemistry: master.chemistry,
+      priceKobo: master.priceKobo,
+      notes: master.notes,
+    },
+  });
+
+  revalidatePath('/dashboard/catalog');
+  revalidatePath('/dashboard');
 }

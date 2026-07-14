@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ShieldCheck } from 'lucide-react';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { PostHogIdentify } from '@/components/analytics/PostHogIdentify';
@@ -47,6 +48,15 @@ export default async function DashboardLayout({
               {item.label}
             </Link>
           ))}
+          {installer.role === 'ADMIN' && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Admin
+            </Link>
+          )}
         </nav>
         <div className="border-t border-sidebar-border p-4">
           <div className="mb-3 text-xs">

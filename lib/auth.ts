@@ -55,3 +55,15 @@ export async function requireInstaller(): Promise<{
   if (!ctx.installer) redirect('/signup');
   return { ...ctx, installer: ctx.installer };
 }
+
+// Superadmin gate for /admin — non-admins are quietly sent to their own
+// dashboard rather than shown a forbidden page.
+export async function requireAdmin(): Promise<{
+  authUserId: string;
+  email: string;
+  installer: Installer;
+}> {
+  const ctx = await requireInstaller();
+  if (ctx.installer.role !== 'ADMIN') redirect('/dashboard');
+  return ctx;
+}

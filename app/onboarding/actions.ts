@@ -2,10 +2,11 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { schemas, slugify, STARTER_CATALOG } from '@inverta/shared';
+import { schemas, slugify } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/notifications';
+import { copyItemsToInstaller, getActiveMasterItems } from '@/lib/master-catalog';
 
 export interface OnboardingFormState {
   error?: string;
@@ -59,21 +60,8 @@ export async function loadStarterCatalogStepAction(): Promise<void> {
     where: { installerId: installer.id },
   });
   if (existing === 0) {
-    await prisma.catalogItem.createMany({
-      data: STARTER_CATALOG.map((item) => ({
-        installerId: installer.id,
-        type: item.type,
-        brand: item.brand,
-        model: item.model,
-        capacity: item.capacity,
-        unit: item.unit,
-        voltage: item.voltage ?? null,
-        storageKwh: item.storageKwh ?? null,
-        chemistry: item.chemistry ?? null,
-        priceKobo: item.priceKobo,
-        notes: item.notes ?? null,
-      })),
-    });
+    // Admin-curated platform catalog, or the built-in template until one exists.
+    await copyItemsToInstaller(installer.id, await getActiveMasterItems());
     revalidatePath('/dashboard/catalog');
   }
 
