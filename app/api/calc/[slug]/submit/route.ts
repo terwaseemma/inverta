@@ -153,6 +153,7 @@ export async function POST(
       installerName: installer.businessName,
       leadId: lead.id,
       customerName: data.customerName,
+      customerEmail: data.customerEmail,
       systemSummary: systemSummary(result as never),
     });
   } catch {

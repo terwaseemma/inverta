@@ -6,6 +6,7 @@ import { schemas, nairaToKobo } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
+import { emailLayout, escapeHtml } from '@/lib/email-template';
 import { getAppUrl } from '@/lib/app-url';
 import { parseResultSnapshot } from '@/lib/lead-utils';
 
@@ -199,16 +200,22 @@ export async function sendProposalAction(formData: FormData): Promise<void> {
   ]);
 
   // Customer email with the public capability link (cuid is unguessable).
+  // Replies go to the installer, not the platform.
   const appUrl = getAppUrl();
   await sendEmail({
     to: proposal.lead.customerEmail,
     subject: `Your solar proposal from ${installer.businessName}`,
-    html: `
-      <p>Hi ${proposal.lead.customerName},</p>
-      <p>${installer.businessName} has prepared a solar proposal for you.</p>
-      <p><a href="${appUrl}/proposal/${proposal.id}">View your proposal</a></p>
-      <p>This quote is valid until ${proposal.validUntil?.toLocaleDateString('en-NG') ?? '30 days from now'}.</p>
-    `,
+    replyTo: installer.email,
+    html: emailLayout({
+      heading: 'Your solar proposal is ready',
+      bodyHtml: `
+        <p>Hi ${escapeHtml(proposal.lead.customerName.split(' ')[0] ?? '')},</p>
+        <p><strong>${escapeHtml(installer.businessName)}</strong> has prepared a solar system proposal for you, with a full cost breakdown and payment details.</p>
+        <p>This quote is valid until <strong>${proposal.validUntil?.toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' }) ?? '30 days from now'}</strong>.</p>
+      `,
+      cta: { label: 'View your proposal', url: `${appUrl}/proposal/${proposal.id}` },
+      footerNote: `Sent on behalf of ${escapeHtml(installer.businessName)} via Inverta. Reply to this email to reach them directly.`,
+    }),
   });
 
   revalidatePath(`/dashboard/proposals/${id}`);

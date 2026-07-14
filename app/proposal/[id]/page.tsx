@@ -44,6 +44,7 @@ export default async function PublicProposalPage({
     try {
       await notifyProposalViewed({
         installerId: proposal.installerId,
+        installerEmail: proposal.installer.email,
         proposalId: proposal.id,
         customerName: proposal.lead.customerName,
       });

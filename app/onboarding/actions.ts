@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { schemas, slugify, STARTER_CATALOG } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
+import { sendWelcomeEmail } from '@/lib/notifications';
 
 export interface OnboardingFormState {
   error?: string;
@@ -142,6 +143,18 @@ export async function finishOnboardingAction(
       update: { slug, isActive: true },
     }),
   ]);
+
+  // Welcome email with their live calculator link — never blocks the finish.
+  try {
+    await sendWelcomeEmail({
+      email: installer.email,
+      contactName: installer.contactName,
+      businessName: installer.businessName,
+      calcSlug: slug,
+    });
+  } catch {
+    // non-fatal
+  }
 
   redirect('/dashboard');
 }
