@@ -14,6 +14,7 @@ export interface MasterItemData {
   capacity: number;
   unit: 'KVA' | 'KWH' | 'AH' | 'W' | 'UNIT';
   voltage: number | null;
+  systemVoltage: number | null;
   storageKwh: number | null;
   chemistry: 'LITHIUM' | 'AGM' | 'GEL' | null;
   priceKobo: number;
@@ -34,6 +35,7 @@ export async function getActiveMasterItems(): Promise<MasterItemData[]> {
       capacity: Number(r.capacity),
       unit: r.unit,
       voltage: r.voltage,
+      systemVoltage: r.systemVoltage,
       storageKwh: r.storageKwh == null ? null : Number(r.storageKwh),
       chemistry: r.chemistry,
       priceKobo: r.priceKobo,
@@ -48,6 +50,7 @@ export async function getActiveMasterItems(): Promise<MasterItemData[]> {
     capacity: s.capacity,
     unit: s.unit,
     voltage: s.voltage ?? null,
+    systemVoltage: s.systemVoltage ?? null,
     storageKwh: s.storageKwh ?? null,
     chemistry: s.chemistry ?? null,
     priceKobo: s.priceKobo,
@@ -70,6 +73,7 @@ export async function copyItemsToInstaller(
       capacity: item.capacity,
       unit: item.unit,
       voltage: item.voltage,
+      systemVoltage: item.systemVoltage,
       storageKwh: item.storageKwh,
       chemistry: item.chemistry,
       priceKobo: item.priceKobo,

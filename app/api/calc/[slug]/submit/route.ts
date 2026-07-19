@@ -178,6 +178,7 @@ function toEngineItem(c: {
   capacity: { toNumber(): number } | number;
   unit: string;
   voltage: number | null;
+  systemVoltage: number | null;
   storageKwh: { toNumber(): number } | number | null;
   chemistry: string | null;
   priceKobo: number;
@@ -197,6 +198,7 @@ function toEngineItem(c: {
     capacity,
     unit: c.unit as CatalogUnit,
     voltage: c.voltage,
+    systemVoltage: c.systemVoltage,
     storageKwh,
     chemistry: c.chemistry as BatteryChemistry | null,
     priceKobo: c.priceKobo,

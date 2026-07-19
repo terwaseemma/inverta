@@ -51,6 +51,11 @@ export const catalogItemSchema = z
     capacity: z.number().positive('Capacity must be positive').max(1_000_000),
     unit: z.enum(['KVA', 'KWH', 'AH', 'W', 'UNIT']),
     voltage: z.number().int().positive().max(1000).optional(),
+    systemVoltage: z
+      .number()
+      .int()
+      .refine((v) => [12, 24, 48].includes(v), 'System voltage must be 12, 24, or 48')
+      .optional(),
     storageKwh: z.number().positive().max(10_000).optional(),
     chemistry: z.enum(['LITHIUM', 'AGM', 'GEL']).optional(),
     priceNaira: z.number().min(0, 'Price is required').max(1_000_000_000),

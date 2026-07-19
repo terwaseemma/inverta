@@ -11,6 +11,8 @@ export interface StarterCatalogItem {
   capacity: number;
   unit: 'KVA' | 'KWH' | 'AH' | 'W' | 'UNIT';
   voltage?: number;
+  /** DC system class (12/24/48) for inverter↔battery matching */
+  systemVoltage?: number;
   storageKwh?: number;
   chemistry?: 'LITHIUM' | 'AGM' | 'GEL';
   priceKobo: number;

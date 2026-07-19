@@ -363,6 +363,72 @@ describe('calculate — solar generators', () => {
   });
 });
 
+describe('calculate — voltage compatibility', () => {
+  it('never pairs an inverter with a different-voltage battery bank', () => {
+    // Only a 12V inverter and a 48V battery — physically incompatible.
+    const catalog = makeCatalog({
+      inverters: [
+        { id: 'inv12', brand: 'Haisic', model: '1.5kW 12V', capacity: 1.5, unit: 'KVA', systemVoltage: 12, priceKobo: 250_000_00 },
+      ],
+      batteries: [
+        { id: 'bat48', brand: 'Haisic', model: '15kWh 48V', capacity: 15, unit: 'KWH', systemVoltage: 48, chemistry: 'LITHIUM', priceKobo: 1_800_000_00 },
+      ],
+      generators: [],
+    });
+    const r = calculate(baseInput(), catalog);
+    expect(r.inverter).toBeNull();
+    expect(r.batteries).toBeNull();
+    expect(r.pricing).toBeNull();
+    expect(r.warnings.some((w) => w.toLowerCase().includes('voltage-compatible'))).toBe(true);
+  });
+
+  it('picks the matching-voltage pair even when a mismatched one is cheaper', () => {
+    const catalog = makeCatalog({
+      inverters: [
+        { id: 'inv12', brand: 'Haisic', model: '1.5kW 12V', capacity: 1.5, unit: 'KVA', systemVoltage: 12, priceKobo: 250_000_00 },
+        { id: 'inv48', brand: 'Haisic', model: '15kVA 48V', capacity: 15, unit: 'KVA', systemVoltage: 48, priceKobo: 1_050_000_00 },
+      ],
+      batteries: [
+        // Only a 48V battery stocked — the cheap 12V inverter must be skipped.
+        { id: 'bat48', brand: 'Haisic', model: '15kWh 48V', capacity: 15, unit: 'KWH', systemVoltage: 48, chemistry: 'LITHIUM', priceKobo: 1_800_000_00 },
+      ],
+      generators: [],
+    });
+    const r = calculate(baseInput(), catalog);
+    expect(r.inverter!.id).toBe('inv48');
+    expect(r.batteries!.id).toBe('bat48');
+  });
+
+  it('optimises the combined price across compatible pairs', () => {
+    // 12V path: ₦250k inv + 1× ₦550k battery = ₦800k
+    // 48V path: ₦1.05M inv + 1× ₦1.8M battery = ₦2.85M
+    // Small load fits both → 12V path wins on combined price.
+    const catalog = makeCatalog({
+      inverters: [
+        { id: 'inv12', brand: 'Haisic', model: '1.5kW 12V', capacity: 1.5, unit: 'KVA', systemVoltage: 12, priceKobo: 250_000_00 },
+        { id: 'inv48', brand: 'Haisic', model: '15kVA 48V', capacity: 15, unit: 'KVA', systemVoltage: 48, priceKobo: 1_050_000_00 },
+      ],
+      batteries: [
+        { id: 'bat12', brand: 'Haisic', model: '4kWh 12.8V', capacity: 4.019, unit: 'KWH', systemVoltage: 12, chemistry: 'LITHIUM', priceKobo: 550_000_00 },
+        { id: 'bat48', brand: 'Haisic', model: '15kWh 48V', capacity: 15, unit: 'KWH', systemVoltage: 48, chemistry: 'LITHIUM', priceKobo: 1_800_000_00 },
+      ],
+      generators: [],
+    });
+    const r = calculate(baseInput(), catalog);
+    expect(r.inverter!.id).toBe('inv12');
+    expect(r.batteries!.id).toBe('bat12');
+    expect(r.batteries!.count).toBe(1);
+  });
+
+  it('treats untagged items as compatible with everything (legacy catalogs)', () => {
+    // makeCatalog items carry no systemVoltage — behaviour unchanged.
+    const r = calculate(baseInput(), makeCatalog());
+    expect(r.inverter).not.toBeNull();
+    expect(r.batteries).not.toBeNull();
+    expect(r.pricing).not.toBeNull();
+  });
+});
+
 describe('calculate — backup runtime estimate', () => {
   it('reports hours at full load from usable battery energy', () => {
     // Selected bank: 1× 3.5kWh lithium → usable = 3500 × 0.8 × 0.85 = 2380Wh

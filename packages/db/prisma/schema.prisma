@@ -131,7 +131,10 @@ model CatalogItem {
   model       String
   capacity    Decimal           @db.Decimal(12, 3) // numeric, paired with unit
   unit        CapacityUnit
-  voltage     Int? // for AH batteries
+  voltage     Int? // exact battery voltage, for AH→Wh conversion
+  // DC system-voltage CLASS (12/24/48) for inverter↔battery matching.
+  // 12.8V LiFePO4 is class 12; 25.6V is class 24. Null = unknown/any.
+  systemVoltage Int?
   storageKwh  Decimal?          @db.Decimal(12, 3) // built-in battery, GENERATOR only
   chemistry   BatteryChemistry?
   priceKobo   Int
@@ -226,11 +229,12 @@ model MasterCatalogItem {
   type       CatalogItemType
   brand      String
   model      String
-  capacity   Decimal           @db.Decimal(12, 3)
-  unit       CapacityUnit
-  voltage    Int?
-  storageKwh Decimal?          @db.Decimal(12, 3)
-  chemistry  BatteryChemistry?
+  capacity      Decimal           @db.Decimal(12, 3)
+  unit          CapacityUnit
+  voltage       Int?
+  systemVoltage Int? // DC class 12/24/48 for inverter↔battery matching
+  storageKwh    Decimal?          @db.Decimal(12, 3)
+  chemistry     BatteryChemistry?
   priceKobo  Int // suggested resale price
   notes      String?
   isActive   Boolean           @default(true)

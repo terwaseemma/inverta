@@ -48,32 +48,6 @@ function dodForPreference(preference: BatteryPreference): number {
 // Selection helpers return null when the category is unstocked — the caller
 // degrades to sizing-only output instead of failing the whole calculation.
 
-function selectInverter(
-  catalog: EngineCatalog,
-  requiredW: number,
-  warnings: string[],
-): InverterSelection | null {
-  const inverters = catalog.inverters.filter((i) => i.unit === 'KVA');
-  if (inverters.length === 0) return null;
-
-  const requiredKva = requiredW / 1000;
-  const bySize = [...inverters].sort((a, b) => a.capacity - b.capacity);
-  let chosen = bySize.find((i) => i.capacity >= requiredKva);
-  if (!chosen) {
-    chosen = bySize[bySize.length - 1]!;
-    warnings.push(
-      `Load exceeds largest inverter (${chosen.capacity} kVA). Sized to largest available; consider a larger unit.`,
-    );
-  }
-  return {
-    id: chosen.id,
-    brand: chosen.brand,
-    model: chosen.model,
-    capacityKva: chosen.capacity,
-    priceKobo: chosen.priceKobo,
-  };
-}
-
 // Practical ceiling on parallel battery strings — beyond this, wiring and
 // balancing get messy, so bigger units win even if pricier.
 const MAX_BATTERY_UNITS = 6;
@@ -84,20 +58,24 @@ interface BatteryConfig {
   totalPriceKobo: number;
 }
 
-// Considers EVERY stocked battery (not just the largest): for each one,
-// works out how many units cover the requirement at that battery's own
-// chemistry DOD, then picks the cheapest workable configuration. A customer
-// needing 3 kWh gets 1× 4 kWh unit, not 1× 15 kWh flagship.
-function selectBatteryConfig(
+// A 12V inverter can only run on a 12V-class bank. Items with no declared
+// system voltage are treated as universally compatible so untagged catalogs
+// keep working.
+function voltageCompatible(a: EngineCatalogItem, b: EngineCatalogItem): boolean {
+  if (a.systemVoltage == null || b.systemVoltage == null) return true;
+  return a.systemVoltage === b.systemVoltage;
+}
+
+// Batteries the customer's chemistry preference allows, falling back to the
+// whole stock (with a warning) when the preferred type isn't carried.
+function batteryPool(
   catalog: EngineCatalog,
   preference: BatteryPreference,
-  bankNeededWh: number,
   warnings: string[],
-): BatteryConfig | null {
+): EngineCatalogItem[] {
   const sized = catalog.batteries.filter((b) => batteryCapacityWh(b) > 0);
-  if (sized.length === 0) return null;
+  if (sized.length === 0) return [];
 
-  // Filter by preference; fall back to any chemistry if the preferred type isn't stocked.
   const preferredChemistry =
     preference === 'lithium' ? 'LITHIUM' : preference === 'agm' ? 'AGM' : null;
 
@@ -111,6 +89,17 @@ function selectBatteryConfig(
     );
     pool = sized;
   }
+  return pool;
+}
+
+// Cheapest workable configuration from a given pool: for each battery, units
+// needed at ITS chemistry DOD → total price; ≤6 parallel units preferred,
+// fewest-units fallback otherwise. Null when the pool is empty.
+function cheapestBatteryConfig(
+  pool: EngineCatalogItem[],
+  bankNeededWh: number,
+): BatteryConfig | null {
+  if (pool.length === 0) return null;
 
   const configs: BatteryConfig[] = pool.map((item) => {
     const unitWh = batteryCapacityWh(item);
@@ -123,17 +112,72 @@ function selectBatteryConfig(
     a.totalPriceKobo - b.totalPriceKobo || a.count - b.count;
 
   const practical = configs.filter((c) => c.count <= MAX_BATTERY_UNITS);
-  if (practical.length > 0) {
-    return practical.sort(byPrice)[0]!;
+  if (practical.length > 0) return practical.sort(byPrice)[0]!;
+  return [...configs].sort((a, b) => a.count - b.count || byPrice(a, b))[0]!;
+}
+
+interface PowerPath {
+  inverter: EngineCatalogItem;
+  bank: BatteryConfig;
+  comboKobo: number;
+}
+
+// Joint inverter + battery selection: every inverter that covers the load is
+// paired with the cheapest VOLTAGE-COMPATIBLE battery configuration, and the
+// cheapest overall combination wins. This is what stops a 12V inverter being
+// quoted with a 48V bank.
+function selectPowerPath(
+  catalog: EngineCatalog,
+  requiredW: number,
+  bankNeededWh: number,
+  preference: BatteryPreference,
+  warnings: string[],
+): PowerPath | null {
+  const allInverters = catalog.inverters.filter((i) => i.unit === 'KVA');
+  const pool = batteryPool(catalog, preference, warnings);
+  if (allInverters.length === 0 || pool.length === 0) return null;
+
+  const requiredKva = requiredW / 1000;
+  let invCandidates = allInverters.filter((i) => i.capacity >= requiredKva);
+  let loadExceedsStock = false;
+  if (invCandidates.length === 0) {
+    // Nothing covers the load — pair around the largest available and flag it.
+    loadExceedsStock = true;
+    const largest = [...allInverters].sort((a, b) => b.capacity - a.capacity)[0]!;
+    invCandidates = [largest];
   }
 
-  // Nothing fits within a sane parallel count — take the fewest-units option
-  // and flag it for the installer to review.
-  const fallback = [...configs].sort((a, b) => a.count - b.count || byPrice(a, b))[0]!;
-  warnings.push(
-    `Backup requirement needs ${fallback.count} battery units in parallel — consider stocking larger batteries for loads like this.`,
-  );
-  return fallback;
+  const paths: PowerPath[] = [];
+  for (const inverter of invCandidates) {
+    const compatible = pool.filter((b) => voltageCompatible(inverter, b));
+    const bank = cheapestBatteryConfig(compatible, bankNeededWh);
+    if (!bank) continue;
+    paths.push({ inverter, bank, comboKobo: inverter.priceKobo + bank.totalPriceKobo });
+  }
+
+  if (paths.length === 0) {
+    warnings.push(
+      'No voltage-compatible inverter and battery combination in the catalog — the installer will confirm the right pairing in the formal quote.',
+    );
+    return null;
+  }
+
+  const best = paths.sort(
+    (a, b) => a.comboKobo - b.comboKobo || a.inverter.capacity - b.inverter.capacity,
+  )[0]!;
+
+  if (loadExceedsStock) {
+    warnings.push(
+      `Load exceeds largest inverter (${best.inverter.capacity} kVA). Sized to largest available; consider a larger unit.`,
+    );
+  }
+  if (best.bank.count > MAX_BATTERY_UNITS) {
+    warnings.push(
+      `Backup requirement needs ${best.bank.count} battery units in parallel — consider stocking larger batteries for loads like this.`,
+    );
+  }
+
+  return best;
 }
 
 // Smallest (by price) all-in-one generator that covers BOTH the load and the
@@ -253,32 +297,79 @@ export function calculate(
     panelArrayKwp: round2(sizePanelArray(dailyEnergyWh, sunHours)),
   };
 
-  // Inverter
-  let inverter = selectInverter(catalog, inverterRequiredW, warnings);
+  // Inverter + battery — selected JOINTLY so only voltage-compatible pairs
+  // are ever quoted, at the cheapest combined price.
+  let inverter: InverterSelection | null = null;
+  let batteries: BatterySelection | null = null;
 
-  // Battery — cheapest workable configuration across the whole catalog.
-  const batteryConfig = selectBatteryConfig(
+  const path = selectPowerPath(
     catalog,
-    input.batteryPreference,
+    inverterRequiredW,
     bankNeededWh,
+    input.batteryPreference,
     warnings,
   );
-  let batteries: BatterySelection | null = null;
-  if (batteryConfig) {
-    const { item: batteryItem, count: batteryCount } = batteryConfig;
+  if (path) {
+    inverter = {
+      id: path.inverter.id,
+      brand: path.inverter.brand,
+      model: path.inverter.model,
+      capacityKva: path.inverter.capacity,
+      priceKobo: path.inverter.priceKobo,
+    };
+    const { item: batteryItem, count: batteryCount } = path.bank;
     const singleUnitWh = batteryCapacityWh(batteryItem);
-    const chemistry = batteryItem.chemistry ?? 'LITHIUM';
     batteries = {
       id: batteryItem.id,
       brand: batteryItem.brand,
       model: batteryItem.model,
-      chemistry,
+      chemistry: batteryItem.chemistry ?? 'LITHIUM',
       singleUnitCapacityKwh: singleUnitWh / 1000,
       count: batteryCount,
       totalCapacityKwh: round2((batteryCount * singleUnitWh) / 1000),
       unitPriceKobo: batteryItem.priceKobo,
-      totalPriceKobo: batteryConfig.totalPriceKobo,
+      totalPriceKobo: path.bank.totalPriceKobo,
     };
+  } else {
+    // Partial catalogs still show what they can: an inverter with no
+    // batteries stocked (or vice versa) renders alongside the sizing
+    // requirements — pricing stays withheld either way.
+    const soloInverters = catalog.inverters
+      .filter((i) => i.unit === 'KVA')
+      .sort((a, b) => a.capacity - b.capacity);
+    if (soloInverters.length > 0 && catalog.batteries.length === 0) {
+      const chosen =
+        soloInverters.find((i) => i.capacity * 1000 >= inverterRequiredW) ??
+        soloInverters[soloInverters.length - 1]!;
+      inverter = {
+        id: chosen.id,
+        brand: chosen.brand,
+        model: chosen.model,
+        capacityKva: chosen.capacity,
+        priceKobo: chosen.priceKobo,
+      };
+    }
+    const soloBank =
+      catalog.inverters.length === 0
+        ? cheapestBatteryConfig(
+            batteryPool(catalog, input.batteryPreference, warnings),
+            bankNeededWh,
+          )
+        : null;
+    if (soloBank) {
+      const singleUnitWh = batteryCapacityWh(soloBank.item);
+      batteries = {
+        id: soloBank.item.id,
+        brand: soloBank.item.brand,
+        model: soloBank.item.model,
+        chemistry: soloBank.item.chemistry ?? 'LITHIUM',
+        singleUnitCapacityKwh: singleUnitWh / 1000,
+        count: soloBank.count,
+        totalCapacityKwh: round2((soloBank.count * singleUnitWh) / 1000),
+        unitPriceKobo: soloBank.item.priceKobo,
+        totalPriceKobo: soloBank.totalPriceKobo,
+      };
+    }
   }
 
   // Panels

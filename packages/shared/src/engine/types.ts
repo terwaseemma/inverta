@@ -16,6 +16,12 @@ export interface EngineCatalogItem {
   capacity: number;
   unit: CatalogUnit;
   voltage?: number | null;
+  /**
+   * DC system-voltage class (12/24/48) for inverter↔battery matching —
+   * a 12V inverter can only run on a 12V-class bank. Null = unknown,
+   * treated as compatible with anything.
+   */
+  systemVoltage?: number | null;
   /** Built-in battery capacity — solar generators only */
   storageKwh?: number | null;
   chemistry?: BatteryChemistry | null;

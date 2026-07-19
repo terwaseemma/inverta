@@ -24,6 +24,7 @@ export default async function CatalogPage() {
     capacity: Number(r.capacity),
     unit: r.unit,
     voltage: r.voltage,
+    systemVoltage: r.systemVoltage,
     storageKwh: r.storageKwh == null ? null : Number(r.storageKwh),
     chemistry: r.chemistry,
     priceKobo: r.priceKobo,

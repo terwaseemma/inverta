@@ -21,6 +21,7 @@ export interface MasterItemDto {
   capacity: number;
   unit: 'KVA' | 'KWH' | 'AH' | 'W' | 'UNIT';
   voltage: number | null;
+  systemVoltage: number | null;
   storageKwh: number | null;
   chemistry: 'LITHIUM' | 'AGM' | 'GEL' | null;
   priceKobo: number;
@@ -60,10 +61,11 @@ function describeCapacity(item: MasterItemDto): string {
   if (item.type === 'GENERATOR') {
     return `${item.capacity} kVA output · ${item.storageKwh ?? '?'} kWh battery`;
   }
+  const sysV = item.systemVoltage ? ` · ${item.systemVoltage}V system` : '';
   switch (item.unit) {
-    case 'KVA': return `${item.capacity} kVA`;
-    case 'KWH': return `${item.capacity} kWh`;
-    case 'AH': return `${item.capacity} Ah${item.voltage ? ` · ${item.voltage}V` : ''}`;
+    case 'KVA': return `${item.capacity} kVA${sysV}`;
+    case 'KWH': return `${item.capacity} kWh${sysV}`;
+    case 'AH': return `${item.capacity} Ah${item.voltage ? ` · ${item.voltage}V` : ''}${sysV}`;
     case 'W': return `${item.capacity} W`;
     default: return '';
   }
@@ -299,6 +301,25 @@ function ItemForm({
             defaultValue={item ? String(item.capacity) : undefined}
             error={err.capacity}
           />
+        )}
+
+        {(type === 'INVERTER' || type === 'BATTERY') && (
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">System voltage</span>
+            <select
+              name="systemVoltage"
+              defaultValue={item?.systemVoltage ? String(item.systemVoltage) : ''}
+              className="input"
+            >
+              <option value="">Any / not set</option>
+              <option value="12">12V</option>
+              <option value="24">24V</option>
+              <option value="48">48V</option>
+            </select>
+            <span className="text-xs text-muted-foreground">
+              Inverters only pair with same-voltage batteries in quotes.
+            </span>
+          </label>
         )}
 
         {type === 'GENERATOR' && (
