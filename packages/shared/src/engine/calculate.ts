@@ -74,11 +74,26 @@ function selectInverter(
   };
 }
 
-function selectBattery(
+// Practical ceiling on parallel battery strings — beyond this, wiring and
+// balancing get messy, so bigger units win even if pricier.
+const MAX_BATTERY_UNITS = 6;
+
+interface BatteryConfig {
+  item: EngineCatalogItem;
+  count: number;
+  totalPriceKobo: number;
+}
+
+// Considers EVERY stocked battery (not just the largest): for each one,
+// works out how many units cover the requirement at that battery's own
+// chemistry DOD, then picks the cheapest workable configuration. A customer
+// needing 3 kWh gets 1× 4 kWh unit, not 1× 15 kWh flagship.
+function selectBatteryConfig(
   catalog: EngineCatalog,
   preference: BatteryPreference,
+  bankNeededWh: number,
   warnings: string[],
-): EngineCatalogItem | null {
+): BatteryConfig | null {
   const sized = catalog.batteries.filter((b) => batteryCapacityWh(b) > 0);
   if (sized.length === 0) return null;
 
@@ -97,10 +112,28 @@ function selectBattery(
     pool = sized;
   }
 
-  // Pick the largest single-unit Wh to minimise string count & wiring complexity.
-  return pool.reduce((best, b) =>
-    batteryCapacityWh(b) > batteryCapacityWh(best) ? b : best,
+  const configs: BatteryConfig[] = pool.map((item) => {
+    const unitWh = batteryCapacityWh(item);
+    const chemistry = item.chemistry ?? 'LITHIUM';
+    const count = batteryUnitsNeeded(bankNeededWh, chemistry, unitWh);
+    return { item, count, totalPriceKobo: item.priceKobo * count };
+  });
+
+  const byPrice = (a: BatteryConfig, b: BatteryConfig) =>
+    a.totalPriceKobo - b.totalPriceKobo || a.count - b.count;
+
+  const practical = configs.filter((c) => c.count <= MAX_BATTERY_UNITS);
+  if (practical.length > 0) {
+    return practical.sort(byPrice)[0]!;
+  }
+
+  // Nothing fits within a sane parallel count — take the fewest-units option
+  // and flag it for the installer to review.
+  const fallback = [...configs].sort((a, b) => a.count - b.count || byPrice(a, b))[0]!;
+  warnings.push(
+    `Backup requirement needs ${fallback.count} battery units in parallel — consider stocking larger batteries for loads like this.`,
   );
+  return fallback;
 }
 
 // Smallest (by price) all-in-one generator that covers BOTH the load and the
@@ -223,13 +256,18 @@ export function calculate(
   // Inverter
   let inverter = selectInverter(catalog, inverterRequiredW, warnings);
 
-  // Battery
-  const batteryItem = selectBattery(catalog, input.batteryPreference, warnings);
+  // Battery — cheapest workable configuration across the whole catalog.
+  const batteryConfig = selectBatteryConfig(
+    catalog,
+    input.batteryPreference,
+    bankNeededWh,
+    warnings,
+  );
   let batteries: BatterySelection | null = null;
-  if (batteryItem) {
+  if (batteryConfig) {
+    const { item: batteryItem, count: batteryCount } = batteryConfig;
     const singleUnitWh = batteryCapacityWh(batteryItem);
     const chemistry = batteryItem.chemistry ?? 'LITHIUM';
-    const batteryCount = batteryUnitsNeeded(bankNeededWh, chemistry, singleUnitWh);
     batteries = {
       id: batteryItem.id,
       brand: batteryItem.brand,
@@ -239,7 +277,7 @@ export function calculate(
       count: batteryCount,
       totalCapacityKwh: round2((batteryCount * singleUnitWh) / 1000),
       unitPriceKobo: batteryItem.priceKobo,
-      totalPriceKobo: batteryItem.priceKobo * batteryCount,
+      totalPriceKobo: batteryConfig.totalPriceKobo,
     };
   }
 
@@ -323,6 +361,23 @@ export function calculate(
     paybackMonths = Math.round(pricing.totalKobo / currentSpendKobo);
   }
 
+  // Backup runtime at FULL connected load — usable energy after DOD and
+  // roundtrip losses divided by the total load. Real usage is normally a
+  // subset of the connected load, so actual backup usually runs longer.
+  let estimatedBackupHoursFullLoad: number | null = null;
+  if (generator) {
+    const usableWh =
+      generator.storageKwh * 1000 * DOD_LITHIUM * ROUNDTRIP_EFFICIENCY;
+    estimatedBackupHoursFullLoad = Number((usableWh / totalLoadW).toFixed(1));
+  } else if (batteries) {
+    const usableWh =
+      batteries.totalCapacityKwh *
+      1000 *
+      dodFor(batteries.chemistry) *
+      ROUNDTRIP_EFFICIENCY;
+    estimatedBackupHoursFullLoad = Number((usableWh / totalLoadW).toFixed(1));
+  }
+
   // CO2 — only if the customer runs a generator.
   let co2SavedKgPerMonth: number | null = null;
   if (
@@ -353,6 +408,7 @@ export function calculate(
     monthlySavingsKobo,
     paybackMonths,
     co2SavedKgPerMonth,
+    estimatedBackupHoursFullLoad,
     warnings,
   };
 }

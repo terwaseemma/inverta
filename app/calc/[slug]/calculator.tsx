@@ -766,6 +766,17 @@ function Results({
             <div>Connected load: <span className="font-mono text-foreground">{r.totalLoadW.toLocaleString()} W</span></div>
             <div>Daily energy: <span className="font-mono text-foreground">{(r.dailyEnergyWh / 1000).toFixed(1)} kWh</span></div>
           </dl>
+          {r.estimatedBackupHoursFullLoad !== null && (
+            <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+              <span className="font-medium">
+                ⚡ Battery backup: ~{r.estimatedBackupHoursFullLoad} hours
+              </span>{' '}
+              <span className="text-muted-foreground">
+                with everything running at once. You&apos;ll rarely do that — run only
+                the essentials (fridge, lights, fan) and it lasts much longer.
+              </span>
+            </div>
+          )}
         </SummaryCard>
 
         {!r.catalogComplete && (

@@ -114,7 +114,12 @@ function recommendation(result: LeadResultSnapshot): string | null {
   }
   const pan = result.panels?.totalKwp ?? result.requirements?.panelArrayKwp;
   if (pan) parts.push(`${pan}kWp solar panels`);
-  return parts.length > 0 ? parts.join(', ') : null;
+  if (parts.length === 0) return null;
+  let text = parts.join(', ');
+  if (result.estimatedBackupHoursFullLoad != null) {
+    text += `. Approx. ${result.estimatedBackupHoursFullLoad} hours of backup with the full load running — lighter usage lasts longer.`;
+  }
+  return text;
 }
 
 // react-pdf can only embed PNG/JPG. Pre-fetch so a broken or unsupported logo

@@ -164,6 +164,61 @@ describe('calculate — battery sizing', () => {
     expect(long.batteries!.count).toBeGreaterThan(short.batteries!.count);
   });
 
+  it('picks the CHEAPEST workable configuration, not the largest battery', () => {
+    // Requirement: 360W × 6h = 2160Wh → lithium effective ≈ 3176Wh.
+    // Large: 1× 15kWh @ ₦1.8M = ₦1.8M. Small: 1× 4.019kWh @ ₦550k = ₦550k.
+    // The small battery covers it for less than a third of the price.
+    const catalog = makeCatalog({
+      batteries: [
+        { id: 'big', brand: 'Haisic', model: '15kWh 48V', capacity: 15, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 1_800_000_00 },
+        { id: 'small', brand: 'Haisic', model: '4kWh 12.8V', capacity: 4.019, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 550_000_00 },
+      ],
+    });
+    const r = calculate(baseInput(), catalog);
+    expect(r.batteries!.id).toBe('small');
+    expect(r.batteries!.count).toBe(1);
+    expect(r.batteries!.totalPriceKobo).toBe(550_000_00);
+  });
+
+  it('uses multiple small units when that beats one large unit on price', () => {
+    // Need ≈ 6353Wh effective (720W × 6h ÷ 0.85 ÷ 0.8).
+    // 2× 4.019kWh @ ₦550k = ₦1.1M vs 1× 15kWh @ ₦1.8M → two small units win.
+    const catalog = makeCatalog({
+      batteries: [
+        { id: 'big', brand: 'Haisic', model: '15kWh 48V', capacity: 15, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 1_800_000_00 },
+        { id: 'small', brand: 'Haisic', model: '4kWh 12.8V', capacity: 4.019, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 550_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Load', wattage: 720, quantity: 1, hoursPerDay: 6 }],
+      }),
+      catalog,
+    );
+    expect(r.batteries!.id).toBe('small');
+    expect(r.batteries!.count).toBe(2);
+  });
+
+  it('avoids impractical parallel counts by stepping up to larger units', () => {
+    // Requirement ≈ 21.2kWh effective (2400W × 6h ÷ 0.85 ÷ 0.8).
+    // Tiny 1kWh @ ₦100k → 22 units (impractical, even though ₦2.2M is cheapest).
+    // 15kWh @ ₦1.8M → 2 units ₦3.6M — allowed (≤6 units) so it wins.
+    const catalog = makeCatalog({
+      batteries: [
+        { id: 'tiny', brand: 'T', model: '1kWh', capacity: 1, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 100_000_00 },
+        { id: 'big', brand: 'Haisic', model: '15kWh 48V', capacity: 15, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 1_800_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Load', wattage: 2400, quantity: 1, hoursPerDay: 6 }],
+      }),
+      catalog,
+    );
+    expect(r.batteries!.id).toBe('big');
+    expect(r.batteries!.count).toBeLessThanOrEqual(6);
+  });
+
   it('falls back to any chemistry when preferred is not stocked', () => {
     const lithiumOnly = makeCatalog({
       batteries: [
@@ -305,6 +360,34 @@ describe('calculate — solar generators', () => {
     expect(r.generator).not.toBeNull();
     expect(r.pricing).not.toBeNull();
     expect(r.catalogComplete).toBe(true);
+  });
+});
+
+describe('calculate — backup runtime estimate', () => {
+  it('reports hours at full load from usable battery energy', () => {
+    // Selected bank: 1× 3.5kWh lithium → usable = 3500 × 0.8 × 0.85 = 2380Wh
+    // At 360W full load → 6.6 hours.
+    const r = calculate(baseInput(), makeCatalog());
+    expect(r.estimatedBackupHoursFullLoad).toBe(6.6);
+  });
+
+  it('uses generator storage when a generator is selected', () => {
+    const catalog = makeCatalog({
+      inverters: [],
+      batteries: [],
+      generators: [
+        { id: 'gen', brand: 'G', model: '3.6kVA/3.8kWh', capacity: 3.6, unit: 'KVA', storageKwh: 3.8, priceKobo: 1_650_000_00 },
+      ],
+    });
+    const r = calculate(baseInput(), catalog);
+    expect(r.generator).not.toBeNull();
+    // 3800 × 0.8 × 0.85 = 2584Wh ÷ 360W = 7.2h
+    expect(r.estimatedBackupHoursFullLoad).toBe(7.2);
+  });
+
+  it('is null when no storage was selected', () => {
+    const r = calculate(baseInput(), EMPTY_CATALOG);
+    expect(r.estimatedBackupHoursFullLoad).toBeNull();
   });
 });
 

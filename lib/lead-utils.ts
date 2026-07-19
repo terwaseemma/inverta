@@ -60,6 +60,7 @@ export interface LeadResultSnapshot {
     markupKobo?: number;
     totalKobo?: number;
   } | null;
+  estimatedBackupHoursFullLoad?: number | null;
   catalogComplete?: boolean;
 }
 

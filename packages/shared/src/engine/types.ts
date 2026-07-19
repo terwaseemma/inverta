@@ -145,6 +145,13 @@ export interface CalculationResult {
   monthlySavingsKobo: number | null;
   paybackMonths: number | null;
   co2SavedKgPerMonth: number | null;
+  /**
+   * How long the selected storage runs the FULL connected load, in hours
+   * (usable energy after DOD + efficiency ÷ total load). Customers rarely
+   * run everything at once, so real-world backup is usually longer — the UI
+   * should say so. Null when no battery/generator was selected.
+   */
+  estimatedBackupHoursFullLoad: number | null;
   /** Non-fatal notes the UI may surface (e.g. "no inverter exactly matches; sized up") */
   warnings: string[];
 }
