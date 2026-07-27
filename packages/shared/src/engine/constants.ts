@@ -13,6 +13,12 @@ export const DOD_LEAD_ACID = 0.5;
 // Default Nigerian solar insolation if the installer's region lookup misses.
 export const DEFAULT_SUN_HOURS = 5.5;
 
+// How much more an all-in-one solar generator may cost than the equivalent
+// inverter + battery bank and still be recommended. One box means simpler
+// wiring, a single warranty, and less that can be installed wrong — worth a
+// modest premium over loose components.
+export const INTEGRATED_SYSTEM_PREMIUM = 0.15; // 15%
+
 // Generator CO2 math (for the "you saved X kg CO2/month" card).
 export const GEN_FUEL_CONSUMPTION_L_PER_KVA_HR = 0.3; // L/hr per kVA
 export const DIESEL_CO2_KG_PER_L = 2.68;

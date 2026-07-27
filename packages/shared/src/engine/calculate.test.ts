@@ -429,6 +429,49 @@ describe('calculate — voltage compatibility', () => {
   });
 });
 
+describe('calculate — all-in-one vs components', () => {
+  // Component path here: 2kVA inverter ₦300k + 1× 3.5kWh lithium ₦1M = ₦1.3M.
+  const withGenerator = (priceKobo: number) =>
+    makeCatalog({
+      generators: [
+        { id: 'gen', brand: 'G', model: 'AIO 3.6kVA/8kWh', capacity: 3.6, unit: 'KVA', storageKwh: 8, priceKobo },
+      ],
+    });
+
+  it('prefers an all-in-one when it costs less than components', () => {
+    const r = calculate(baseInput(), withGenerator(1_000_000_00));
+    expect(r.generator).not.toBeNull();
+    expect(r.inverter).toBeNull();
+    expect(r.batteries).toBeNull();
+  });
+
+  it('still prefers an all-in-one within the 15% integration premium', () => {
+    // ₦1.4M vs ₦1.3M components = +7.7% → integrated simplicity wins.
+    const r = calculate(baseInput(), withGenerator(1_400_000_00));
+    expect(r.generator).not.toBeNull();
+    expect(r.inverter).toBeNull();
+  });
+
+  it('falls back to components when the all-in-one premium is too high', () => {
+    // ₦1.6M vs ₦1.3M components = +23% → too expensive to justify.
+    const r = calculate(baseInput(), withGenerator(1_600_000_00));
+    expect(r.generator).toBeNull();
+    expect(r.inverter).not.toBeNull();
+    expect(r.batteries).not.toBeNull();
+  });
+
+  it('excludes an all-in-one whose built-in battery is too small', () => {
+    const tooSmall = makeCatalog({
+      generators: [
+        { id: 'gen', brand: 'G', model: 'AIO 1.5kVA/1kWh', capacity: 1.5, unit: 'KVA', storageKwh: 1, priceKobo: 500_000_00 },
+      ],
+    });
+    const r = calculate(baseInput(), tooSmall);
+    expect(r.generator).toBeNull();
+    expect(r.inverter).not.toBeNull();
+  });
+});
+
 describe('calculate — backup runtime estimate', () => {
   it('reports hours at full load from usable battery energy', () => {
     // Selected bank: 1× 3.5kWh lithium → usable = 3500 × 0.8 × 0.85 = 2380Wh

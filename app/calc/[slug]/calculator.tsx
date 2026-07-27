@@ -52,11 +52,14 @@ function ApplianceVisual({ name, className }: { name: string; className?: string
 
 type Step = 1 | 2 | 3;
 
-// Silent defaults for the engine — the customer no longer picks these.
-// The installer's catalog dictates which specific battery gets selected;
-// 'none' preference means "installer decides", which is the sensible default.
-const DEFAULT_BACKUP_HOURS = 8;
+// Battery chemistry stays a silent default — the installer's catalog decides
+// which specific battery gets selected, so 'none' ("installer decides") is
+// the sensible choice. Backup hours, by contrast, swings the price more than
+// anything else on this page, so the customer picks it (below).
 const DEFAULT_BATTERY_PREFERENCE = 'none' as const;
+
+const BACKUP_HOUR_OPTIONS = [4, 6, 8, 12] as const;
+const DEFAULT_BACKUP_HOURS = 6;
 
 interface SelectedAppliance {
   key: string;
@@ -89,8 +92,9 @@ export function Calculator({ slug, installerName, presets }: Props) {
   const [generatorKva, setGeneratorKva] = useState('');
   const [generatorHours, setGeneratorHours] = useState('');
 
-  // Step 1 — appliances
+  // Step 1 — appliances + how long they should run on battery
   const [appliances, setAppliances] = useState<SelectedAppliance[]>([]);
+  const [backupHours, setBackupHours] = useState<number>(DEFAULT_BACKUP_HOURS);
 
   // Step 3 — contact
   const [customerName, setCustomerName] = useState('');
@@ -131,7 +135,7 @@ export function Calculator({ slug, installerName, presets }: Props) {
             hoursPerDay: a.hoursPerDay,
             quantity: a.quantity,
           })),
-          backupHours: DEFAULT_BACKUP_HOURS,
+          backupHours,
           batteryPreference: DEFAULT_BATTERY_PREFERENCE,
           customerName,
           customerEmail,
@@ -180,6 +184,8 @@ export function Calculator({ slug, installerName, presets }: Props) {
               appliances={appliances}
               setAppliances={setAppliances}
               totals={totals}
+              backupHours={backupHours}
+              setBackupHours={setBackupHours}
             />
           )}
           {step === 2 && (
@@ -366,8 +372,11 @@ function Step2(props: {
   appliances: SelectedAppliance[];
   setAppliances: (a: SelectedAppliance[]) => void;
   totals: { loadW: number; dailyWh: number };
+  backupHours: number;
+  setBackupHours: (h: number) => void;
 }) {
-  const { presets, appliances, setAppliances, totals } = props;
+  const { presets, appliances, setAppliances, totals, backupHours, setBackupHours } =
+    props;
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customWattage, setCustomWattage] = useState('');
@@ -461,6 +470,36 @@ function Step2(props: {
               {(totals.dailyWh / 1000).toFixed(1)} kWh
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Backup hours — the single biggest price lever, so the customer
+          chooses it rather than inheriting a hidden default. */}
+      <div className="rounded-lg border bg-background/40 p-4 backdrop-blur">
+        <div className="text-sm font-medium">
+          How long should the battery run these appliances?
+        </div>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Backup time with everything switched on. More hours means more batteries —
+          and a higher price.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {BACKUP_HOUR_OPTIONS.map((h) => (
+            <button
+              key={h}
+              type="button"
+              onClick={() => setBackupHours(h)}
+              aria-pressed={backupHours === h}
+              className={cn(
+                'rounded-full border px-4 py-1.5 text-sm transition-colors',
+                backupHours === h
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-background/40 hover:border-primary/50 hover:bg-primary/5',
+              )}
+            >
+              {h} hours
+            </button>
+          ))}
         </div>
       </div>
 

@@ -16,6 +16,7 @@ import {
 import {
   DAYS_PER_MONTH,
   DEFAULT_SUN_HOURS,
+  INTEGRATED_SYSTEM_PREMIUM,
   DIESEL_CO2_KG_PER_L,
   DOD_LEAD_ACID,
   DOD_LITHIUM,
@@ -397,9 +398,12 @@ export function calculate(
   );
   let generator = selectGenerator(catalog, inverterRequiredW, generatorStorageReqKwh);
   if (generator && inverter && batteries) {
-    // Both paths available — recommend the cheaper one.
+    // Both paths available. An all-in-one unit is one box, one warranty, and
+    // no parallel battery wiring — worth a modest premium over loose
+    // components, so it wins unless it costs meaningfully more.
     const componentPathKobo = inverter.priceKobo + batteries.totalPriceKobo;
-    if (generator.priceKobo <= componentPathKobo) {
+    const generatorBudget = componentPathKobo * (1 + INTEGRATED_SYSTEM_PREMIUM);
+    if (generator.priceKobo <= generatorBudget) {
       inverter = null;
       batteries = null;
     } else {
