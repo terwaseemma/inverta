@@ -14,7 +14,7 @@ import {
   Check,
 } from 'lucide-react';
 import type { AppliancePreset, CalculationResult } from '@inverta/shared';
-import { formatKobo } from '@inverta/shared';
+import { findPreset, formatKobo } from '@inverta/shared';
 import { cn } from '@/lib/utils';
 
 // Product-style images for each preset (in public/appliances/, sourced from
@@ -108,10 +108,16 @@ export function Calculator({ slug, installerName, presets }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<SubmitResponse | null>(null);
 
+  // Mirrors the server engine: peak is the sum of nameplates, daily energy is
+  // discounted by each preset's duty cycle (a fridge's compressor runs ~40% of
+  // the time). The server recomputes from the preset list — this is just so
+  // the live figures match what the results page will say.
   const totals = useMemo(() => {
     const load = appliances.reduce((s, a) => s + a.wattage * a.quantity, 0);
     const daily = appliances.reduce(
-      (s, a) => s + a.wattage * a.quantity * a.hoursPerDay,
+      (s, a) =>
+        s +
+        a.wattage * a.quantity * a.hoursPerDay * (findPreset(a.name)?.dutyCycle ?? 1),
       0,
     );
     return { loadW: load, dailyWh: daily };
@@ -803,16 +809,25 @@ function Results({
           </dl>
           <dl className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
             <div>Connected load: <span className="font-mono text-foreground">{r.totalLoadW.toLocaleString()} W</span></div>
+            <div>Typical draw: <span className="font-mono text-foreground">{r.averageLoadW.toLocaleString()} W</span></div>
             <div>Daily energy: <span className="font-mono text-foreground">{(r.dailyEnergyWh / 1000).toFixed(1)} kWh</span></div>
+            <div>Startup surge: <span className="font-mono text-foreground">{(r.requirements.peakSurgeW / 1000).toFixed(1)} kW</span></div>
           </dl>
-          {r.estimatedBackupHoursFullLoad !== null && (
+          {r.estimatedBackupHoursTypical !== null && (
             <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
               <span className="font-medium">
-                ⚡ Battery backup: ~{r.estimatedBackupHoursFullLoad} hours
+                ⚡ Battery backup: ~{r.estimatedBackupHoursTypical} hours
               </span>{' '}
               <span className="text-muted-foreground">
-                with everything running at once. You&apos;ll rarely do that — run only
-                the essentials (fridge, lights, fan) and it lasts much longer.
+                in normal use — fridges and air conditioners cycle on and off rather
+                than drawing full power continuously.
+                {r.estimatedBackupHoursFullLoad !== null && (
+                  <>
+                    {' '}
+                    With every appliance running flat out at the same time it&apos;s
+                    about {r.estimatedBackupHoursFullLoad} hours.
+                  </>
+                )}
               </span>
             </div>
           )}

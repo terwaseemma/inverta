@@ -14,18 +14,23 @@ import {
   type SystemPricing,
 } from './types';
 import {
+  AGGREGATE_POWER_FACTOR,
   DAYS_PER_MONTH,
   DEFAULT_SUN_HOURS,
+  FUTURE_LOAD_RESERVE,
   INTEGRATED_SYSTEM_PREMIUM,
+  INVERTER_SURGE_MULTIPLE,
   DIESEL_CO2_KG_PER_L,
   DOD_LEAD_ACID,
   DOD_LITHIUM,
   GEN_FUEL_CONSUMPTION_L_PER_KVA_HR,
-  INVERTER_SAFETY_FACTOR,
+  MAX_PARALLEL_STRINGS_LEAD_ACID,
+  MAX_PARALLEL_STRINGS_LITHIUM,
   MONTHS_PER_YEAR,
   PANEL_OVERSIZE_FACTOR,
   PAYBACK_HORIZON_YEARS,
-  ROUNDTRIP_EFFICIENCY,
+  ROUNDTRIP_EFFICIENCY_LEAD_ACID,
+  ROUNDTRIP_EFFICIENCY_LITHIUM,
 } from './constants';
 
 function round2(n: number): number {
@@ -46,12 +51,40 @@ function dodForPreference(preference: BatteryPreference): number {
   return preference === 'agm' ? DOD_LEAD_ACID : DOD_LITHIUM;
 }
 
+function efficiencyFor(chemistry: BatterySelection['chemistry']): number {
+  return chemistry === 'LITHIUM'
+    ? ROUNDTRIP_EFFICIENCY_LITHIUM
+    : ROUNDTRIP_EFFICIENCY_LEAD_ACID;
+}
+
+function efficiencyForPreference(preference: BatteryPreference): number {
+  return preference === 'agm'
+    ? ROUNDTRIP_EFFICIENCY_LEAD_ACID
+    : ROUNDTRIP_EFFICIENCY_LITHIUM;
+}
+
+/** Lead-acid strings share current unevenly, so fewer may run in parallel. */
+function maxParallelFor(chemistry: BatterySelection['chemistry']): number {
+  return chemistry === 'LITHIUM'
+    ? MAX_PARALLEL_STRINGS_LITHIUM
+    : MAX_PARALLEL_STRINGS_LEAD_ACID;
+}
+
+// Callers may omit these; absent duty cycle means "draws continuously" and
+// absent surge factor means "no inrush", both of which are the safe reading
+// for a custom appliance the customer typed in themselves.
+function dutyCycleOf(a: { dutyCycle?: number }): number {
+  const d = a.dutyCycle;
+  return d != null && d > 0 && d <= 1 ? d : 1;
+}
+
+function surgeFactorOf(a: { surgeFactor?: number }): number {
+  const s = a.surgeFactor;
+  return s != null && s >= 1 ? s : 1;
+}
+
 // Selection helpers return null when the category is unstocked — the caller
 // degrades to sizing-only output instead of failing the whole calculation.
-
-// Practical ceiling on parallel battery strings — beyond this, wiring and
-// balancing get messy, so bigger units win even if pricier.
-const MAX_BATTERY_UNITS = 6;
 
 interface BatteryConfig {
   item: EngineCatalogItem;
@@ -94,8 +127,10 @@ function batteryPool(
 }
 
 // Cheapest workable configuration from a given pool: for each battery, units
-// needed at ITS chemistry DOD → total price; ≤6 parallel units preferred,
-// fewest-units fallback otherwise. Null when the pool is empty.
+// needed at ITS chemistry DOD and efficiency → total price. The parallel
+// ceiling is chemistry-specific (3 for lead-acid, more for BMS-managed
+// lithium); when nothing fits inside it we take the fewest-units option and
+// let the caller warn. Null when the pool is empty.
 function cheapestBatteryConfig(
   pool: EngineCatalogItem[],
   bankNeededWh: number,
@@ -112,7 +147,9 @@ function cheapestBatteryConfig(
   const byPrice = (a: BatteryConfig, b: BatteryConfig) =>
     a.totalPriceKobo - b.totalPriceKobo || a.count - b.count;
 
-  const practical = configs.filter((c) => c.count <= MAX_BATTERY_UNITS);
+  const practical = configs.filter(
+    (c) => c.count <= maxParallelFor(c.item.chemistry ?? 'LITHIUM'),
+  );
   if (practical.length > 0) return practical.sort(byPrice)[0]!;
   return [...configs].sort((a, b) => a.count - b.count || byPrice(a, b))[0]!;
 }
@@ -130,6 +167,7 @@ interface PowerPath {
 function selectPowerPath(
   catalog: EngineCatalog,
   requiredW: number,
+  requiredSurgeW: number,
   bankNeededWh: number,
   preference: BatteryPreference,
   warnings: string[],
@@ -139,8 +177,23 @@ function selectPowerPath(
   if (allInverters.length === 0 || pool.length === 0) return null;
 
   const requiredKva = requiredW / 1000;
-  let invCandidates = allInverters.filter((i) => i.capacity >= requiredKva);
+  // A unit must both carry the continuous load AND survive the startup surge.
+  // Sizing on continuous alone is why undersized inverters trip (or fail)
+  // the moment an air conditioner or pump kicks in.
+  const carriesLoad = allInverters.filter((i) => i.capacity >= requiredKva);
+  const carriesSurge = carriesLoad.filter(
+    (i) => i.capacity * 1000 * INVERTER_SURGE_MULTIPLE >= requiredSurgeW,
+  );
+
+  let invCandidates = carriesSurge;
   let loadExceedsStock = false;
+  let surgeExceedsStock = false;
+
+  if (invCandidates.length === 0 && carriesLoad.length > 0) {
+    // Big enough to run the loads, not big enough to start them cleanly.
+    surgeExceedsStock = true;
+    invCandidates = carriesLoad;
+  }
   if (invCandidates.length === 0) {
     // Nothing covers the load — pair around the largest available and flag it.
     loadExceedsStock = true;
@@ -172,9 +225,15 @@ function selectPowerPath(
       `Load exceeds largest inverter (${best.inverter.capacity} kVA). Sized to largest available; consider a larger unit.`,
     );
   }
-  if (best.bank.count > MAX_BATTERY_UNITS) {
+  if (surgeExceedsStock) {
     warnings.push(
-      `Backup requirement needs ${best.bank.count} battery units in parallel — consider stocking larger batteries for loads like this.`,
+      `Startup surge (~${Math.round(requiredSurgeW / 1000)} kW) may exceed what a ${best.inverter.capacity} kVA inverter can deliver. Motors and compressors could trip it — the installer should confirm the surge rating or size up.`,
+    );
+  }
+  const bankChemistry = best.bank.item.chemistry ?? 'LITHIUM';
+  if (best.bank.count > maxParallelFor(bankChemistry)) {
+    warnings.push(
+      `Backup requirement needs ${best.bank.count} battery units in parallel (${maxParallelFor(bankChemistry)} is the practical limit for ${bankChemistry.toLowerCase()}) — consider stocking larger batteries for loads like this.`,
     );
   }
 
@@ -216,10 +275,18 @@ function selectPanel(catalog: EngineCatalog): EngineCatalogItem | null {
   return panels.reduce((best, p) => (p.capacity > best.capacity ? p : best));
 }
 
-function sizeBatteryBank(totalLoadW: number, backupHours: number): number {
-  // dailyEnergy * (backup / hoursOfUse) simplifies to totalLoad * backupHours
-  // because hoursOfUse = dailyEnergy / totalLoad.
-  return totalLoadW * backupHours;
+/**
+ * Energy the bank must deliver over the backup window.
+ *
+ * Uses the duty-cycle-weighted AVERAGE draw, not the sum of every nameplate.
+ * A fridge is rated 200W but its compressor runs ~40% of the time, so over
+ * six hours it takes 480Wh from the battery, not 1,200Wh. Sizing on
+ * nameplates assumes every appliance in the house runs flat out for the
+ * whole outage — a scenario that never happens, and one that roughly
+ * doubles the quoted battery bank.
+ */
+function sizeBatteryBank(averageLoadW: number, backupHours: number): number {
+  return averageLoadW * backupHours;
 }
 
 function batteryUnitsNeeded(
@@ -227,7 +294,8 @@ function batteryUnitsNeeded(
   chemistry: BatterySelection['chemistry'],
   singleUnitWh: number,
 ): number {
-  const effectiveCapacity = energyNeededWh / (ROUNDTRIP_EFFICIENCY * dodFor(chemistry));
+  const effectiveCapacity =
+    energyNeededWh / (efficiencyFor(chemistry) * dodFor(chemistry));
   return Math.max(1, Math.ceil(effectiveCapacity / singleUnitWh));
 }
 
@@ -272,12 +340,20 @@ export function calculate(
   const warnings: string[] = [];
   const sunHours = input.sunHours ?? DEFAULT_SUN_HOURS;
 
+  // Peak: every nameplate at once. This is what the inverter must be able to
+  // carry, because any appliance may be drawing when the peak lands.
   const totalLoadW = input.appliances.reduce(
     (sum, a) => sum + a.wattage * a.quantity,
     0,
   );
+  // Average: nameplate × duty cycle. This is what the battery and the array
+  // actually have to supply over time.
+  const averageLoadW = input.appliances.reduce(
+    (sum, a) => sum + a.wattage * a.quantity * dutyCycleOf(a),
+    0,
+  );
   const dailyEnergyWh = input.appliances.reduce(
-    (sum, a) => sum + a.wattage * a.quantity * a.hoursPerDay,
+    (sum, a) => sum + a.wattage * a.quantity * a.hoursPerDay * dutyCycleOf(a),
     0,
   );
 
@@ -285,14 +361,31 @@ export function calculate(
     throw new CalculationError('INVALID_INPUT', 'Total load is zero. Add at least one appliance with wattage.');
   }
 
+  // Worst-case startup surge: the single largest inrush, landing while
+  // everything else is already running. Compressors and pumps draw 3–7× for
+  // a fraction of a second, and exceeding that momentary figure is what
+  // actually destroys inverters — far more often than steady overload.
+  const peakSurgeW = input.appliances.reduce((worst, a) => {
+    const unitW = a.wattage;
+    const surgeOfOne = unitW * surgeFactorOf(a);
+    // One unit surges; its siblings and every other appliance run normally.
+    const restW = totalLoadW - unitW;
+    return Math.max(worst, surgeOfOne + restW);
+  }, totalLoadW);
+
   // Catalog-independent requirements — computed no matter what's stocked.
-  const inverterRequiredW = totalLoadW * INVERTER_SAFETY_FACTOR;
-  const bankNeededWh = sizeBatteryBank(totalLoadW, input.backupHours);
+  // Inverters are rated in kVA, so real watts must be divided by the power
+  // factor before comparing, then given headroom for load growth.
+  const inverterRequiredW =
+    (totalLoadW / AGGREGATE_POWER_FACTOR) * FUTURE_LOAD_RESERVE;
+  const bankNeededWh = sizeBatteryBank(averageLoadW, input.backupHours);
   const requirements: SystemRequirements = {
     inverterKva: round2(inverterRequiredW / 1000),
+    peakSurgeW: Math.round(peakSurgeW),
     batteryBankKwh: round2(
       bankNeededWh /
-        (ROUNDTRIP_EFFICIENCY * dodForPreference(input.batteryPreference)) /
+        (efficiencyForPreference(input.batteryPreference) *
+          dodForPreference(input.batteryPreference)) /
         1000,
     ),
     panelArrayKwp: round2(sizePanelArray(dailyEnergyWh, sunHours)),
@@ -306,6 +399,7 @@ export function calculate(
   const path = selectPowerPath(
     catalog,
     inverterRequiredW,
+    peakSurgeW,
     bankNeededWh,
     input.batteryPreference,
     warnings,
@@ -394,7 +488,7 @@ export function calculate(
   // All-in-one solar generator — considered against the inverter + battery
   // pair. Generators always use lithium-grade DOD for the storage check.
   const generatorStorageReqKwh = round2(
-    bankNeededWh / (ROUNDTRIP_EFFICIENCY * DOD_LITHIUM) / 1000,
+    bankNeededWh / (ROUNDTRIP_EFFICIENCY_LITHIUM * DOD_LITHIUM) / 1000,
   );
   let generator = selectGenerator(catalog, inverterRequiredW, generatorStorageReqKwh);
   if (generator && inverter && batteries) {
@@ -456,21 +550,26 @@ export function calculate(
     paybackMonths = Math.round(pricing.totalKobo / currentSpendKobo);
   }
 
-  // Backup runtime at FULL connected load — usable energy after DOD and
-  // roundtrip losses divided by the total load. Real usage is normally a
-  // subset of the connected load, so actual backup usually runs longer.
+  // Two runtime figures from the same usable energy:
+  //  • typical  — at the duty-cycle-weighted average draw, which is what a
+  //    household actually pulls hour to hour. This is the honest headline.
+  //  • full load — every appliance drawing its nameplate simultaneously, the
+  //    conservative floor.
   let estimatedBackupHoursFullLoad: number | null = null;
-  if (generator) {
-    const usableWh =
-      generator.storageKwh * 1000 * DOD_LITHIUM * ROUNDTRIP_EFFICIENCY;
-    estimatedBackupHoursFullLoad = Number((usableWh / totalLoadW).toFixed(1));
-  } else if (batteries) {
-    const usableWh =
-      batteries.totalCapacityKwh *
-      1000 *
-      dodFor(batteries.chemistry) *
-      ROUNDTRIP_EFFICIENCY;
-    estimatedBackupHoursFullLoad = Number((usableWh / totalLoadW).toFixed(1));
+  let estimatedBackupHoursTypical: number | null = null;
+  const usableStorageWh = generator
+    ? generator.storageKwh * 1000 * DOD_LITHIUM * ROUNDTRIP_EFFICIENCY_LITHIUM
+    : batteries
+      ? batteries.totalCapacityKwh *
+        1000 *
+        dodFor(batteries.chemistry) *
+        efficiencyFor(batteries.chemistry)
+      : null;
+  if (usableStorageWh !== null) {
+    estimatedBackupHoursFullLoad = Number((usableStorageWh / totalLoadW).toFixed(1));
+    estimatedBackupHoursTypical = Number(
+      (usableStorageWh / Math.max(1, averageLoadW)).toFixed(1),
+    );
   }
 
   // CO2 — only if the customer runs a generator.
@@ -491,7 +590,8 @@ export function calculate(
 
   return {
     totalLoadW,
-    dailyEnergyWh,
+    averageLoadW: Math.round(averageLoadW),
+    dailyEnergyWh: Math.round(dailyEnergyWh),
     requirements,
     inverter,
     batteries,
@@ -504,6 +604,7 @@ export function calculate(
     paybackMonths,
     co2SavedKgPerMonth,
     estimatedBackupHoursFullLoad,
+    estimatedBackupHoursTypical,
     warnings,
   };
 }

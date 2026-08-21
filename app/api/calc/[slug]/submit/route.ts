@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   calculate,
+  findPreset,
   nairaToKobo,
   sunHoursForRegion,
   DEFAULT_SUN_HOURS,
@@ -97,7 +98,18 @@ export async function POST(
   try {
     result = calculate(
       {
-        appliances: data.appliances,
+        // Duty cycle and surge are physics, not user input — resolve them
+        // server-side from the preset name so a tampered payload can't shrink
+        // (or inflate) a quote. Custom appliances the customer typed in get
+        // the conservative defaults: continuous draw, no inrush.
+        appliances: data.appliances.map((a) => {
+          const preset = findPreset(a.name);
+          return {
+            ...a,
+            dutyCycle: preset?.dutyCycle,
+            surgeFactor: preset?.surgeFactor,
+          };
+        }),
         backupHours: data.backupHours,
         batteryPreference: data.batteryPreference,
         sunHours: sunHoursForRegion(installer.region) ?? DEFAULT_SUN_HOURS,

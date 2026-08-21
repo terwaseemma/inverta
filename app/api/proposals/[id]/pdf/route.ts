@@ -116,8 +116,15 @@ function recommendation(result: LeadResultSnapshot): string | null {
   if (pan) parts.push(`${pan}kWp solar panels`);
   if (parts.length === 0) return null;
   let text = parts.join(', ');
-  if (result.estimatedBackupHoursFullLoad != null) {
-    text += `. Approx. ${result.estimatedBackupHoursFullLoad} hours of backup with the full load running — lighter usage lasts longer.`;
+  // Prefer the realistic (duty-cycle-aware) runtime; fall back to the
+  // full-load figure for leads captured before that was computed.
+  const typical = result.estimatedBackupHoursTypical;
+  const fullLoad = result.estimatedBackupHoursFullLoad;
+  if (typical != null) {
+    text += `. Approx. ${typical} hours of backup in normal use`;
+    text += fullLoad != null ? ` (${fullLoad} hours with every load running at once).` : '.';
+  } else if (fullLoad != null) {
+    text += `. Approx. ${fullLoad} hours of backup with the full load running — lighter usage lasts longer.`;
   }
   return text;
 }

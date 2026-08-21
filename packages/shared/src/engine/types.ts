@@ -7,6 +7,17 @@ export interface EngineAppliance {
   wattage: number;
   hoursPerDay: number;
   quantity: number;
+  /**
+   * Fraction of switched-on time the appliance actually draws power (0–1).
+   * A fridge sits plugged in all day but its compressor runs ~40% of that.
+   * Defaults to 1 (continuous) when the caller doesn't supply it.
+   */
+  dutyCycle?: number;
+  /**
+   * Startup inrush as a multiple of running power. Motors and compressors
+   * draw 3–7× for a fraction of a second. Defaults to 1 (no inrush).
+   */
+  surgeFactor?: number;
 }
 
 export interface EngineCatalogItem {
@@ -64,8 +75,14 @@ export interface CalculationInput {
  * they need and the lead is captured either way.
  */
 export interface SystemRequirements {
-  /** Minimum inverter size (load × safety factor), in kVA */
+  /** Minimum inverter size (load ÷ power factor × future reserve), in kVA */
   inverterKva: number;
+  /**
+   * Worst-case startup surge the inverter must survive, in watts: the largest
+   * inductive load's inrush plus everything else already running. An inverter
+   * that cannot supply this trips (or dies) when the AC kicks in.
+   */
+  peakSurgeW: number;
   /** Gross battery bank to install (after DOD + efficiency), in kWh */
   batteryBankKwh: number;
   /** Solar array size (with oversize factor), in kWp */
@@ -130,7 +147,14 @@ export interface SystemPricing {
 }
 
 export interface CalculationResult {
+  /** Sum of every appliance's rated power — the peak the inverter must carry. */
   totalLoadW: number;
+  /**
+   * Duty-cycle-weighted average draw. Lower than totalLoadW wherever cycling
+   * appliances (fridges, ACs) are present, and it is this figure — not the
+   * peak — that determines how long the battery lasts.
+   */
+  averageLoadW: number;
   dailyEnergyWh: number;
   /** Always present — catalog-independent sizing */
   requirements: SystemRequirements;
@@ -158,6 +182,11 @@ export interface CalculationResult {
    * should say so. Null when no battery/generator was selected.
    */
   estimatedBackupHoursFullLoad: number | null;
+  /**
+   * Runtime at the duty-cycle-weighted average draw — what the household
+   * realistically experiences, and the figure worth showing customers.
+   */
+  estimatedBackupHoursTypical: number | null;
   /** Non-fatal notes the UI may surface (e.g. "no inverter exactly matches; sized up") */
   warnings: string[];
 }

@@ -22,9 +22,14 @@ export interface LeadInputSnapshot {
 
 export interface LeadResultSnapshot {
   totalLoadW?: number;
+  /** Added when duty-cycle awareness shipped; absent on older leads. */
+  averageLoadW?: number;
   dailyEnergyWh?: number;
+  /** Added alongside averageLoadW; absent on older leads. */
+  estimatedBackupHoursTypical?: number | null;
   requirements?: {
     inverterKva?: number;
+    peakSurgeW?: number;
     batteryBankKwh?: number;
     panelArrayKwp?: number;
   };

@@ -1,25 +1,11 @@
-import { PrismaClient, BatteryChemistry, CapacityUnit, CatalogItemType, AppliancePresetCategory } from '@prisma/client';
+import { PrismaClient, BatteryChemistry, CapacityUnit, CatalogItemType } from '@prisma/client';
+import { APPLIANCE_PRESETS } from '@inverta/shared';
 
 const prisma = new PrismaClient();
 
-const APPLIANCE_PRESETS: { name: string; defaultWattageW: number; category: AppliancePresetCategory }[] = [
-  { name: 'LED bulb',         defaultWattageW: 10,   category: 'LIGHTING' },
-  { name: 'Ceiling fan',      defaultWattageW: 60,   category: 'COOLING' },
-  { name: 'Standing fan',     defaultWattageW: 75,   category: 'COOLING' },
-  { name: 'TV 32"',           defaultWattageW: 80,   category: 'ENTERTAINMENT' },
-  { name: 'TV 43"',           defaultWattageW: 120,  category: 'ENTERTAINMENT' },
-  { name: 'Refrigerator',     defaultWattageW: 150,  category: 'KITCHEN' },
-  { name: 'Freezer',          defaultWattageW: 250,  category: 'KITCHEN' },
-  { name: 'Washing machine',  defaultWattageW: 500,  category: 'KITCHEN' },
-  { name: 'AC 1HP',           defaultWattageW: 900,  category: 'COOLING' },
-  { name: 'AC 1.5HP',         defaultWattageW: 1300, category: 'COOLING' },
-  { name: 'AC 2HP',           defaultWattageW: 1800, category: 'COOLING' },
-  { name: 'Laptop',           defaultWattageW: 65,   category: 'COMPUTING' },
-  { name: 'Desktop computer', defaultWattageW: 250,  category: 'COMPUTING' },
-  { name: 'Phone charger',    defaultWattageW: 10,   category: 'COMPUTING' },
-  { name: 'Water pump',       defaultWattageW: 750,  category: 'OTHER' },
-  { name: 'DSTV decoder',     defaultWattageW: 15,   category: 'ENTERTAINMENT' },
-];
+// Presets come from @inverta/shared so this table can never drift from the
+// list the calculator actually uses. The engine's duty-cycle and surge data
+// lives only in the shared array — the DB copy is reference data.
 
 async function seedPresets() {
   for (const p of APPLIANCE_PRESETS) {

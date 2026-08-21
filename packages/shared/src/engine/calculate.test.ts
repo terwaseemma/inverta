@@ -1,9 +1,10 @@
 import { calculate } from './calculate';
 import { CalculationError, type EngineCatalog, type CalculationInput } from './types';
 import {
+  AGGREGATE_POWER_FACTOR,
   DIESEL_CO2_KG_PER_L,
+  FUTURE_LOAD_RESERVE,
   GEN_FUEL_CONSUMPTION_L_PER_KVA_HR,
-  INVERTER_SAFETY_FACTOR,
 } from './constants';
 
 function makeCatalog(overrides: Partial<EngineCatalog> = {}): EngineCatalog {
@@ -81,20 +82,140 @@ describe('calculate — load & energy totals', () => {
   });
 });
 
+describe('calculate — duty cycle', () => {
+  it('discounts cycling appliances in average load and daily energy', () => {
+    // A fridge is plugged in 24h but its compressor runs 40% of that.
+    const r = calculate(
+      baseInput({
+        appliances: [
+          { name: 'Fridge', wattage: 200, quantity: 1, hoursPerDay: 24, dutyCycle: 0.4 },
+        ],
+      }),
+      makeCatalog(),
+    );
+    // Peak stays at the nameplate — the compressor may be running at peak time.
+    expect(r.totalLoadW).toBe(200);
+    // Average and energy are discounted: 200 × 0.4 = 80W, × 24h = 1920Wh.
+    expect(r.averageLoadW).toBe(80);
+    expect(r.dailyEnergyWh).toBe(1920);
+  });
+
+  it('treats a missing duty cycle as continuous draw', () => {
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Heater', wattage: 500, quantity: 1, hoursPerDay: 4 }],
+      }),
+      makeCatalog(),
+    );
+    expect(r.averageLoadW).toBe(500);
+    expect(r.dailyEnergyWh).toBe(2000);
+  });
+
+  it('sizes the battery on average draw, not the sum of nameplates', () => {
+    const withDuty = calculate(
+      baseInput({
+        appliances: [
+          { name: 'Fridge', wattage: 200, quantity: 1, hoursPerDay: 24, dutyCycle: 0.4 },
+        ],
+        backupHours: 6,
+      }),
+      makeCatalog(),
+    );
+    const withoutDuty = calculate(
+      baseInput({
+        appliances: [
+          { name: 'Fridge', wattage: 200, quantity: 1, hoursPerDay: 24 },
+        ],
+        backupHours: 6,
+      }),
+      makeCatalog(),
+    );
+    // 80W × 6h vs 200W × 6h — the cycling fridge needs a much smaller bank.
+    expect(withDuty.requirements.batteryBankKwh).toBeLessThan(
+      withoutDuty.requirements.batteryBankKwh,
+    );
+    expect(withDuty.requirements.batteryBankKwh).toBeCloseTo(0.63, 2);
+  });
+});
+
+describe('calculate — startup surge', () => {
+  it('reports the largest inrush landing on top of everything else running', () => {
+    const r = calculate(
+      baseInput({
+        appliances: [
+          { name: 'AC', wattage: 1000, quantity: 1, hoursPerDay: 6, surgeFactor: 5 },
+          { name: 'Lights', wattage: 100, quantity: 1, hoursPerDay: 6 },
+        ],
+      }),
+      makeCatalog(),
+    );
+    // AC surges to 5000W while the 100W of lights keep running.
+    expect(r.requirements.peakSurgeW).toBe(5100);
+  });
+
+  it('is just the connected load when nothing has inrush', () => {
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Kettle', wattage: 1800, quantity: 1, hoursPerDay: 1 }],
+      }),
+      makeCatalog(),
+    );
+    expect(r.requirements.peakSurgeW).toBe(1800);
+  });
+
+  it('rejects an inverter that can run the load but not start it', () => {
+    // 1200W of load needs only ~1.8 kVA continuous, but the pump's 6× inrush
+    // demands 7,200W — beyond a 2 kVA unit's 2× surge (4,000W).
+    const catalog = makeCatalog({
+      inverters: [
+        { id: 'small', brand: 'A', model: '2kVA', capacity: 2, unit: 'KVA', priceKobo: 300_000_00 },
+        { id: 'big', brand: 'A', model: '5kVA', capacity: 5, unit: 'KVA', priceKobo: 780_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [
+          { name: 'Water pump', wattage: 1200, quantity: 1, hoursPerDay: 2, surgeFactor: 6 },
+        ],
+      }),
+      catalog,
+    );
+    expect(r.requirements.peakSurgeW).toBe(7200);
+    expect(r.inverter!.capacityKva).toBe(5);
+  });
+
+  it('warns when no stocked inverter can cover the surge', () => {
+    const catalog = makeCatalog({
+      inverters: [
+        { id: 'only', brand: 'A', model: '2kVA', capacity: 2, unit: 'KVA', priceKobo: 300_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [
+          { name: 'Pump', wattage: 1000, quantity: 1, hoursPerDay: 2, surgeFactor: 6 },
+        ],
+      }),
+      catalog,
+    );
+    expect(r.warnings.some((w) => w.toLowerCase().includes('surge'))).toBe(true);
+  });
+});
+
 describe('calculate — requirements (catalog-independent)', () => {
   it('always reports inverter, battery bank, and array sizing', () => {
     const r = calculate(baseInput(), makeCatalog());
-    // 360W × 1.25 = 450W = 0.45 kVA
-    expect(r.requirements.inverterKva).toBe(0.45);
-    // 360W × 6h = 2160Wh / (0.85 × 0.8) = 3176.47Wh → 3.18 kWh
-    expect(r.requirements.batteryBankKwh).toBe(3.18);
+    // Inverters are rated in kVA: 360W ÷ 0.8 PF × 1.2 reserve = 540VA = 0.54 kVA
+    expect(r.requirements.inverterKva).toBe(0.54);
+    // 360W × 6h = 2160Wh / (0.95 lithium efficiency × 0.8 DOD) → 2.84 kWh
+    expect(r.requirements.batteryBankKwh).toBe(2.84);
     // 3360/1000/5.5 × 1.25 = 0.7636 → 0.76 kWp
     expect(r.requirements.panelArrayKwp).toBe(0.76);
   });
 
-  it('uses AGM depth-of-discharge for the bank requirement when preferred', () => {
+  it('uses AGM depth-of-discharge and efficiency for the bank when preferred', () => {
     const r = calculate(baseInput({ batteryPreference: 'agm' }), makeCatalog());
-    // 2160Wh / (0.85 × 0.5) = 5082.35Wh → 5.08 kWh
+    // 2160Wh / (0.85 lead-acid efficiency × 0.5 DOD) = 5082.35Wh → 5.08 kWh
     expect(r.requirements.batteryBankKwh).toBe(5.08);
   });
 
@@ -133,16 +254,16 @@ describe('calculate — inverter sizing', () => {
     );
     expect(r.inverter!.capacityKva).toBe(5);
     expect(r.warnings.some((w) => w.includes('Load exceeds largest inverter'))).toBe(true);
-    // Sanity — ensure safety factor is actually being applied.
-    expect(10_000 * INVERTER_SAFETY_FACTOR).toBe(12_500);
+    // Sanity — power factor and reserve are actually being applied.
+    expect((10_000 / AGGREGATE_POWER_FACTOR) * FUTURE_LOAD_RESERVE).toBe(15_000);
   });
 });
 
 describe('calculate — battery sizing', () => {
-  it('sizes a lithium bank using 0.8 DOD and 0.85 roundtrip efficiency', () => {
+  it('sizes a lithium bank using 0.8 DOD and 0.95 roundtrip efficiency', () => {
     // 360W × 6hr backup = 2160Wh needed
-    // effective capacity = 2160 / (0.85 × 0.8) = ~3176Wh
-    // single unit = 3500Wh → ceil(3176/3500) = 1 unit
+    // effective capacity = 2160 / (0.95 × 0.8) = ~2842Wh
+    // single unit = 3500Wh → ceil(2842/3500) = 1 unit
     const r = calculate(baseInput({ backupHours: 6 }), makeCatalog());
     expect(r.batteries!.chemistry).toBe('LITHIUM');
     expect(r.batteries!.count).toBe(1);
@@ -217,6 +338,47 @@ describe('calculate — battery sizing', () => {
     );
     expect(r.batteries!.id).toBe('big');
     expect(r.batteries!.count).toBeLessThanOrEqual(6);
+  });
+
+  it('caps lead-acid at three parallel strings even when stacking is cheaper', () => {
+    // Need ~8.5kWh effective (600W × 6h ÷ 0.85 ÷ 0.5).
+    // 100Ah units: 8 needed @ ₦120k = ₦960k — cheapest, but 8 strings in
+    // parallel chronically undercharge, so it must be rejected.
+    // 300Ah units: 3 needed @ ₦420k = ₦1.26M — priciest, but buildable.
+    const leadAcidOnly = makeCatalog({
+      batteries: [
+        { id: 'small-agm', brand: 'M', model: 'AGM 100Ah', capacity: 100, unit: 'AH', voltage: 12, chemistry: 'AGM', priceKobo: 120_000_00 },
+        { id: 'xl-agm', brand: 'M', model: 'AGM 300Ah', capacity: 300, unit: 'AH', voltage: 12, chemistry: 'AGM', priceKobo: 420_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Load', wattage: 600, quantity: 1, hoursPerDay: 6 }],
+        batteryPreference: 'agm',
+        backupHours: 6,
+      }),
+      leadAcidOnly,
+    );
+    expect(r.batteries!.id).toBe('xl-agm');
+    expect(r.batteries!.count).toBeLessThanOrEqual(3);
+  });
+
+  it('allows lithium banks past three units (the BMS balances them)', () => {
+    const lithiumOnly = makeCatalog({
+      batteries: [
+        { id: 'lfp-small', brand: 'L', model: 'LFP 2.4kWh', capacity: 2.4, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 500_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Load', wattage: 1500, quantity: 1, hoursPerDay: 6 }],
+        backupHours: 8,
+      }),
+      lithiumOnly,
+    );
+    // 1500W × 8h ÷ (0.95 × 0.8) = 15.8kWh ÷ 2.4 = 7 units — allowed for LFP.
+    expect(r.batteries!.count).toBeGreaterThan(3);
+    expect(r.warnings.some((w) => w.includes('parallel'))).toBe(false);
   });
 
   it('falls back to any chemistry when preferred is not stocked', () => {
@@ -474,10 +636,10 @@ describe('calculate — all-in-one vs components', () => {
 
 describe('calculate — backup runtime estimate', () => {
   it('reports hours at full load from usable battery energy', () => {
-    // Selected bank: 1× 3.5kWh lithium → usable = 3500 × 0.8 × 0.85 = 2380Wh
-    // At 360W full load → 6.6 hours.
+    // Selected bank: 1× 3.5kWh lithium → usable = 3500 × 0.8 × 0.95 = 2660Wh
+    // At 360W full load → 7.4 hours.
     const r = calculate(baseInput(), makeCatalog());
-    expect(r.estimatedBackupHoursFullLoad).toBe(6.6);
+    expect(r.estimatedBackupHoursFullLoad).toBe(7.4);
   });
 
   it('uses generator storage when a generator is selected', () => {
@@ -490,8 +652,8 @@ describe('calculate — backup runtime estimate', () => {
     });
     const r = calculate(baseInput(), catalog);
     expect(r.generator).not.toBeNull();
-    // 3800 × 0.8 × 0.85 = 2584Wh ÷ 360W = 7.2h
-    expect(r.estimatedBackupHoursFullLoad).toBe(7.2);
+    // 3800 × 0.8 × 0.95 = 2888Wh ÷ 360W = 8.0h
+    expect(r.estimatedBackupHoursFullLoad).toBe(8);
   });
 
   it('is null when no storage was selected', () => {
