@@ -69,7 +69,12 @@ export function Hero() {
               alt="Inverta solar calculator interface"
               width={1200}
               height={900}
-              className="pointer-events-none mx-auto h-auto w-full -translate-x-[110px] scale-[1.6] select-none sm:-translate-x-24 md:-translate-x-24 md:scale-125 lg:-translate-x-32 xl:-translate-x-40 xl:scale-150 2xl:-translate-x-56 2xl:scale-[1.65]"
+              /* Mobile offset is -50px, not the -110px the other breakpoints
+                 scale from: the phone in the PNG sits ~60% across its canvas
+                 (the left third is just background glow), so centring the
+                 image box would throw the actual subject right of centre.
+                 -50px puts the phone on the viewport centre line. */
+              className="pointer-events-none mx-auto h-auto w-full -translate-x-[50px] scale-[1.6] select-none sm:-translate-x-24 md:-translate-x-24 md:scale-125 lg:-translate-x-32 xl:-translate-x-40 xl:scale-150 2xl:-translate-x-56 2xl:scale-[1.65]"
               priority
             />
           </div>
