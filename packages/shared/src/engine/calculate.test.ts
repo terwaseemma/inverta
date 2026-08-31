@@ -25,7 +25,6 @@ function makeCatalog(overrides: Partial<EngineCatalog> = {}): EngineCatalog {
     accessories: [
       { id: 'acc-1', brand: 'X', model: 'Rails', capacity: 1, unit: 'UNIT', priceKobo: 25_000_00 },
     ],
-    markupPercent: 15,
     installationFeeKobo: 100_000_00,
     ...overrides,
   };
@@ -37,7 +36,6 @@ const EMPTY_CATALOG: EngineCatalog = {
   panels: [],
   generators: [],
   accessories: [],
-  markupPercent: 15,
   installationFeeKobo: 0,
 };
 
@@ -493,12 +491,17 @@ describe('calculate — solar array sizing', () => {
 });
 
 describe('calculate — cost math', () => {
-  it('applies markup on the subtotal', () => {
-    const r = calculate(baseInput(), makeCatalog({ markupPercent: 20 }));
+  it('totals the line items and the installation fee, and nothing else', () => {
+    // Catalog prices are the installer's own selling prices, so the total
+    // is a plain sum — no uplift sitting between the parts and the price.
+    const r = calculate(baseInput(), makeCatalog());
     const p = r.pricing!;
-    const expectedMarkup = Math.round((p.subtotalKobo * 20) / 100);
-    expect(p.markupKobo).toBe(expectedMarkup);
-    expect(p.totalKobo).toBe(p.subtotalKobo + p.markupKobo);
+    const lineItems =
+      r.inverter!.priceKobo +
+      r.batteries!.totalPriceKobo +
+      r.panels!.totalPriceKobo +
+      r.accessories.reduce((sum, a) => sum + a.totalPriceKobo, 0);
+    expect(p.totalKobo).toBe(lineItems + p.installationFeeKobo);
   });
 
   it('uses a percentage installation fee when set', () => {
@@ -508,7 +511,7 @@ describe('calculate — cost math', () => {
     );
     const p = r.pricing!;
     // fee is 10% of components cost
-    const components = p.subtotalKobo - p.installationFeeKobo;
+    const components = p.totalKobo - p.installationFeeKobo;
     expect(p.installationFeeKobo).toBe(Math.round((components * 10) / 100));
   });
 });

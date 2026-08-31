@@ -118,7 +118,6 @@ export type SettingsProfileInput = z.infer<typeof settingsProfileSchema>;
 // Settings — pricing controls that feed every quote
 export const settingsPricingSchema = z
   .object({
-    markupPercent: z.number().min(0, 'Cannot be negative').max(100),
     feeMode: z.enum(['flat', 'percent']),
     installationFeeNaira: z.number().min(0).max(1_000_000_000).optional(),
     installationFeePercent: z.number().min(0).max(100).optional(),

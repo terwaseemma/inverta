@@ -46,8 +46,6 @@ export interface EngineCatalog {
   /** All-in-one solar generators (inverter + built-in battery) */
   generators: EngineCatalogItem[];
   accessories: EngineCatalogItem[];
-  /** e.g. 15 for +15% markup */
-  markupPercent: number;
   /** Flat installation fee. Ignored if installationFeePercent is set. */
   installationFeeKobo: number;
   /** If set, replaces the flat fee with a percentage of system cost. */
@@ -139,10 +137,14 @@ export interface AccessoryLine {
 }
 
 /** Only present when every core category (inverter/battery/panel) resolved. */
+/**
+ * What the customer pays. Catalog prices are the installer's own selling
+ * prices and the installation fee covers labour and materials, so the line
+ * items already carry whatever margin the installer wants — there is no
+ * separate uplift to apply, and nothing left for a subtotal to differ from.
+ */
 export interface SystemPricing {
   installationFeeKobo: number;
-  subtotalKobo: number;
-  markupKobo: number;
   totalKobo: number;
 }
 

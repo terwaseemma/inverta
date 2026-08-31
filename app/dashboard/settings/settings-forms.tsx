@@ -66,7 +66,6 @@ export function PricingForm({
   defaults,
 }: {
   defaults: {
-    markupPercent: number;
     feeMode: 'flat' | 'percent';
     installationFeeNaira: number;
     installationFeePercent: number;
@@ -81,13 +80,6 @@ export function PricingForm({
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="feeMode" value={feeMode} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          label="Markup (%)"
-          name="markupPercent"
-          type="number"
-          defaultValue={String(defaults.markupPercent)}
-          error={err.markupPercent}
-        />
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">Installation fee type</span>
           <select

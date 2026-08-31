@@ -30,7 +30,7 @@ async function seedDemoInstaller() {
       phone: '+2348012345678',
       region: 'Lagos',
       bio: 'Sample tenant for demos and local development.',
-      markupPercent: 15,
+
       installationFeeKobo: 150_000_00, // NGN 150,000
       emailVerifiedAt: new Date(),
       onboardedAt: new Date(),

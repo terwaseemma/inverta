@@ -879,11 +879,7 @@ function Results({
 
             <SummaryCard title="Cost" icon={<Sun className="h-5 w-5" />}>
               <dl className="space-y-1 text-sm">
-                <CostRow label="Subtotal" value={r.pricing.subtotalKobo} />
-                <CostRow label="Margin" value={r.pricing.markupKobo} muted />
-                <div className="border-t pt-2">
-                  <CostRow label="Total" value={r.pricing.totalKobo} bold />
-                </div>
+                <CostRow label="Total" value={r.pricing.totalKobo} bold />
               </dl>
             </SummaryCard>
           </>

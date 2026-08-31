@@ -53,7 +53,6 @@ export default async function SettingsPage() {
           </p>
           <PricingForm
             defaults={{
-              markupPercent: installer.markupPercent,
               feeMode: installer.installationFeePercent != null ? 'percent' : 'flat',
               installationFeeNaira: installer.installationFeeKobo / 100,
               installationFeePercent: installer.installationFeePercent ?? 10,

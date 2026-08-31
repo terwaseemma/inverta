@@ -623,13 +623,9 @@ export function calculate(
       powerAndStorageKobo + panels.totalPriceKobo + accessoriesTotalKobo;
 
     const installationFeeKobo = computeInstallationFee(componentsKobo, catalog);
-    const subtotalKobo = componentsKobo + installationFeeKobo;
-    const markupKobo = Math.round((subtotalKobo * catalog.markupPercent) / 100);
     pricing = {
       installationFeeKobo,
-      subtotalKobo,
-      markupKobo,
-      totalKobo: subtotalKobo + markupKobo,
+      totalKobo: componentsKobo + installationFeeKobo,
     };
   }
 

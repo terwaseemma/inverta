@@ -74,7 +74,6 @@ export async function savePricingAction(
   const { installer } = await requireInstaller();
 
   const parsed = schemas.settingsPricingSchema.safeParse({
-    markupPercent: num(formData.get('markupPercent')),
     feeMode: formData.get('feeMode'),
     installationFeeNaira: num(formData.get('installationFeeNaira')),
     installationFeePercent: num(formData.get('installationFeePercent')),
@@ -85,7 +84,6 @@ export async function savePricingAction(
   await prisma.installer.update({
     where: { id: installer.id },
     data: {
-      markupPercent: Math.round(d.markupPercent),
       installationFeeKobo:
         d.feeMode === 'flat' ? nairaToKobo(d.installationFeeNaira ?? 0) : 0,
       installationFeePercent:

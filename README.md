@@ -98,7 +98,7 @@ All core MVP modules are implemented:
 - **Catalog** at `/dashboard/catalog` — full CRUD + one-click starter template
 - **Leads** at `/dashboard/leads` — inbox, detail view (inputs/results/spending), status workflow, notes
 - **Notifications** — in-app rows + Resend email on new leads (email skipped gracefully when `RESEND_API_KEY` unset), recent-activity feed on the overview
-- **Settings** at `/dashboard/settings` — profile, pricing (markup + flat/percent installation fee), calculator link slug + active toggle
+- **Settings** at `/dashboard/settings` — profile, pricing (flat/percent installation fee), calculator link slug + active toggle
 - **Proposals** — create from lead (prefilled from the calculation snapshot), line-item editor, on-demand PDF (`@react-pdf/renderer`), public customer view at `/proposal/[id]` with viewed-tracking, send via email
 - **Store** — `/dashboard/store` CRUD + public storefront at `/store/[slug]` with WhatsApp enquiry links
 

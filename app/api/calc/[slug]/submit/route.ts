@@ -88,7 +88,6 @@ export async function POST(
     accessories: installer.catalogItems
       .filter((c) => c.type === 'ACCESSORY')
       .map(toEngineItem),
-    markupPercent: installer.markupPercent,
     installationFeeKobo: installer.installationFeeKobo,
     installationFeePercent: installer.installationFeePercent,
   };

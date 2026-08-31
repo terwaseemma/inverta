@@ -61,8 +61,6 @@ export interface LeadResultSnapshot {
   accessories?: { name?: string; quantity?: number; unitPriceKobo?: number; totalPriceKobo?: number }[];
   pricing?: {
     installationFeeKobo?: number;
-    subtotalKobo?: number;
-    markupKobo?: number;
     totalKobo?: number;
   } | null;
   estimatedBackupHoursFullLoad?: number | null;
