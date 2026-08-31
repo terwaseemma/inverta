@@ -1,0 +1,13 @@
+{
+  "extends": "next/core-web-vitals",
+  "overrides": [
+    {
+      // lib/pdf renders with @react-pdf/renderer, whose <Image> draws into a
+      // PDF and has no alt prop. next/core-web-vitals maps the name "Image" to
+      // <img> for jsx-a11y/alt-text, so the rule is a false positive here.
+      // Scoped off for these files only — it still guards real <img>/next/image.
+      "files": ["lib/pdf/**/*.tsx"],
+      "rules": { "jsx-a11y/alt-text": "off" }
+    }
+  ]
+}
