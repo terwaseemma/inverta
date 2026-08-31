@@ -21,6 +21,23 @@ export interface StarterCatalogItem {
 
 const NOTE = 'Starter estimate — replace with your real pricing.';
 
+/**
+ * Marks a platform catalog price as trade/wholesale — the installer adds their
+ * own margin when importing. It is a fact about the PLATFORM listing, not about
+ * the installer's own stock, so every path that copies an item into an
+ * installer's catalog strips it. Exported so the admin catalog and the import
+ * logic cannot drift on the exact wording.
+ */
+export const WHOLESALE_NOTE =
+  'Wholesale price — add your markup before importing.';
+
+/** Drop the wholesale marker on import, preserving any genuine note. */
+export function stripWholesaleNote(notes: string | null): string | null {
+  if (!notes) return null;
+  const rest = notes.replace(WHOLESALE_NOTE, '').trim();
+  return rest.length > 0 ? rest : null;
+}
+
 export const STARTER_CATALOG: readonly StarterCatalogItem[] = [
   // Inverters (hybrid, kVA)
   { type: 'INVERTER', brand: 'Generic', model: 'Hybrid 1.5kVA', capacity: 1.5, unit: 'KVA', priceKobo: 280_000_00, notes: NOTE },

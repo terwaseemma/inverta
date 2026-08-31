@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { schemas, nairaToKobo } from '@inverta/shared';
+import { schemas, applyMargin, nairaToKobo, stripWholesaleNote } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
 import { copyItemsToInstaller, getActiveMasterItems } from '@/lib/master-catalog';
@@ -123,18 +123,37 @@ export async function loadStarterCatalogAction(
   return { success: true };
 }
 
-// Copy a single platform product into the installer's catalog.
-export async function importMasterItemAction(formData: FormData): Promise<void> {
+// Copy a single platform product into the installer's catalog, at the trade
+// price plus the margin they entered. Platform prices are wholesale and the
+// engine applies no uplift of its own, so whatever lands here is exactly what
+// the customer will be quoted.
+export async function importMasterItemAction(
+  _prev: CatalogFormState,
+  formData: FormData,
+): Promise<CatalogFormState> {
   const { installer } = await requireInstaller();
   const id = String(formData.get('id') ?? '');
-  if (!id) return;
+  if (!id) return { error: 'No product selected.' };
+
+  const parsed = schemas.importMarginSchema.safeParse({
+    marginMode: formData.get('marginMode'),
+    marginPercent: num(formData.get('marginPercent')),
+    marginNaira: num(formData.get('marginNaira')),
+  });
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const key = String(issue.path[0] ?? '');
+      if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+    }
+    return { fieldErrors };
+  }
 
   const master = await prisma.masterCatalogItem.findFirst({
     where: { id, isActive: true },
   });
-  if (!master) return;
+  if (!master) return { error: 'That product is no longer in the platform catalog.' };
 
-  // Skip silently if they already imported this exact product.
   const duplicate = await prisma.catalogItem.findFirst({
     where: {
       installerId: installer.id,
@@ -144,7 +163,7 @@ export async function importMasterItemAction(formData: FormData): Promise<void> 
     },
     select: { id: true },
   });
-  if (duplicate) return;
+  if (duplicate) return { error: 'You have already imported that product.' };
 
   await prisma.catalogItem.create({
     data: {
@@ -158,11 +177,13 @@ export async function importMasterItemAction(formData: FormData): Promise<void> 
       systemVoltage: master.systemVoltage,
       storageKwh: master.storageKwh,
       chemistry: master.chemistry,
-      priceKobo: master.priceKobo,
-      notes: master.notes,
+      priceKobo: applyMargin(master.priceKobo, parsed.data),
+      // The wholesale marker describes the platform listing, not their stock.
+      notes: stripWholesaleNote(master.notes),
     },
   });
 
   revalidatePath('/dashboard/catalog');
   revalidatePath('/dashboard');
+  return { success: true };
 }

@@ -11,6 +11,26 @@ export function koboToNaira(kobo: number): number {
   return kobo / KOBO_PER_NAIRA;
 }
 
+/**
+ * An installer's margin over a platform trade price. Structurally what
+ * `schemas.importMarginSchema` parses to — kept here, free of zod, so the
+ * catalog UI can preview a price without pulling the validator into the
+ * browser bundle. Both sides call this one function, so the preview can never
+ * disagree with the price that gets saved.
+ */
+export interface ImportMargin {
+  marginMode: 'percent' | 'amount';
+  marginPercent?: number;
+  marginNaira?: number;
+}
+
+export function applyMargin(priceKobo: number, margin: ImportMargin): number {
+  if (margin.marginMode === 'percent') {
+    return Math.round(priceKobo * (1 + (margin.marginPercent ?? 0) / 100));
+  }
+  return priceKobo + nairaToKobo(margin.marginNaira ?? 0);
+}
+
 export interface FormatMoneyOptions {
   /** Omit the ₦ symbol */
   noSymbol?: boolean;

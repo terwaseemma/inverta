@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/prisma';
-import { STARTER_CATALOG } from '@inverta/shared';
+import { STARTER_CATALOG, stripWholesaleNote } from '@inverta/shared';
 
 // The platform catalog is the admin-managed source installers copy from.
 // Until admins publish anything, the built-in starter template acts as the
@@ -58,7 +58,18 @@ export async function getActiveMasterItems(): Promise<MasterItemData[]> {
   }));
 }
 
-/** Copy master items into an installer's catalog. */
+/**
+ * Copy master items into an installer's catalog.
+ *
+ * The wholesale marker is stripped here rather than at each call site, so the
+ * bulk paths (onboarding, "load starter catalog") cannot leak it into an
+ * installer's own stock the way the single-item import once did.
+ *
+ * NOTE: these bulk paths copy the trade price UNCHANGED — they have no UI
+ * moment at which to ask for a margin, unlike the single-item import. Since
+ * the engine applies no uplift, a catalog seeded this way quotes at cost until
+ * the installer edits the prices.
+ */
 export async function copyItemsToInstaller(
   installerId: string,
   items: MasterItemData[],
@@ -77,7 +88,7 @@ export async function copyItemsToInstaller(
       storageKwh: item.storageKwh,
       chemistry: item.chemistry,
       priceKobo: item.priceKobo,
-      notes: item.notes,
+      notes: stripWholesaleNote(item.notes),
     })),
   });
   return count;

@@ -102,6 +102,34 @@ export const catalogItemSchema = z
   });
 export type CatalogItemInput = z.infer<typeof catalogItemSchema>;
 
+// Importing a platform product — the installer's margin over the trade price.
+// Zero is allowed: an installer may deliberately sell an item at cost.
+export const importMarginSchema = z
+  .object({
+    marginMode: z.enum(['percent', 'amount']),
+    marginPercent: z.number().min(0, 'Cannot be negative').max(500).optional(),
+    marginNaira: z.number().min(0, 'Cannot be negative').max(1_000_000_000).optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.marginMode === 'percent' && val.marginPercent == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['marginPercent'],
+        message: 'Enter a margin percentage.',
+      });
+    }
+    if (val.marginMode === 'amount' && val.marginNaira == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['marginNaira'],
+        message: 'Enter a margin amount.',
+      });
+    }
+  });
+export type ImportMarginInput = z.infer<typeof importMarginSchema>;
+// The price math itself lives in ./money as `applyMargin`, so client code can
+// preview a marked-up price without bundling zod.
+
 // Settings — business profile (name/contact/etc. editable post-onboarding)
 export const settingsProfileSchema = z.object({
   businessName: z.string().min(2).max(80),
