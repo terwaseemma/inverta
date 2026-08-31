@@ -802,7 +802,7 @@ function Results({
               }
               sub={
                 r.panels
-                  ? `${r.panels.count}× ${r.panels.wattsPerPanel}W ${r.panels.model}`
+                  ? `${r.panels.count}× ${r.panels.model}`
                   : 'Recommended array size'
               }
             />

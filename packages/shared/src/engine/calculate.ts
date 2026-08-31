@@ -19,6 +19,7 @@ import {
   DAYS_PER_MONTH,
   DEFAULT_SUN_HOURS,
   FUTURE_LOAD_RESERVE,
+  INTEGRATED_MAX_UPLIFT,
   INTEGRATED_SYSTEM_PREMIUM,
   INVERTER_OVERSIZE_WARN_MIN_GAP_KVA,
   INVERTER_OVERSIZE_WARN_MULTIPLE,
@@ -31,9 +32,11 @@ import {
   MAX_PARALLEL_STRINGS_LITHIUM,
   MONTHS_PER_YEAR,
   PANEL_OVERSIZE_FACTOR,
+  PV_TO_INVERTER_RATIO,
   PAYBACK_HORIZON_YEARS,
   ROUNDTRIP_EFFICIENCY_LEAD_ACID,
   ROUNDTRIP_EFFICIENCY_LITHIUM,
+  SAME_BRAND_PREMIUM,
 } from './constants';
 
 function round2(n: number): number {
@@ -98,6 +101,11 @@ interface BatteryConfig {
 // A 12V inverter can only run on a 12V-class bank. Items with no declared
 // system voltage are treated as universally compatible so untagged catalogs
 // keep working.
+// Brands are free text typed by installers, so compare forgivingly.
+function sameBrand(a: EngineCatalogItem, b: EngineCatalogItem): boolean {
+  return a.brand.trim().toLowerCase() === b.brand.trim().toLowerCase();
+}
+
 function voltageCompatible(a: EngineCatalogItem, b: EngineCatalogItem): boolean {
   if (a.systemVoltage == null || b.systemVoltage == null) return true;
   return a.systemVoltage === b.systemVoltage;
@@ -218,6 +226,18 @@ function selectPowerPath(
     const bank = cheapestBatteryConfig(compatible, bankNeededWh);
     if (!bank) continue;
     paths.push({ inverter, bank, comboKobo: inverter.priceKobo + bank.totalPriceKobo });
+
+    // Also carry the cheapest bank of the INVERTER'S OWN brand, so a matched
+    // pair can be preferred below even when a mixed pair is cheaper.
+    const ownBrand = compatible.filter((b) => sameBrand(b, inverter));
+    const ownBank = cheapestBatteryConfig(ownBrand, bankNeededWh);
+    if (ownBank && ownBank.item.id !== bank.item.id) {
+      paths.push({
+        inverter,
+        bank: ownBank,
+        comboKobo: inverter.priceKobo + ownBank.totalPriceKobo,
+      });
+    }
   }
 
   if (paths.length === 0) {
@@ -227,9 +247,17 @@ function selectPowerPath(
     return null;
   }
 
-  const best = paths.sort(
+  const byPrice = paths.sort(
     (a, b) => a.comboKobo - b.comboKobo || a.inverter.capacity - b.inverter.capacity,
-  )[0]!;
+  );
+  const cheapest = byPrice[0]!;
+  // Prefer inverter and battery from one brand — they are far more likely to
+  // speak the same BMS protocol — but only while the premium stays modest.
+  const matched = byPrice.find((p) => sameBrand(p.bank.item, p.inverter));
+  const best =
+    matched && matched.comboKobo <= cheapest.comboKobo * (1 + SAME_BRAND_PREMIUM)
+      ? matched
+      : cheapest;
 
   if (loadExceedsStock) {
     warnings.push(
@@ -358,9 +386,24 @@ function batteryUnitsNeeded(
   return Math.max(1, Math.ceil(effectiveCapacity / singleUnitWh));
 }
 
-function sizePanelArray(dailyEnergyWh: number, sunHours: number): number {
-  // kWp = (daily kWh / sun hours) × oversize factor
-  return (dailyEnergyWh / 1000 / sunHours) * PANEL_OVERSIZE_FACTOR;
+/**
+ * Array size: the larger of what the household consumes and what the power
+ * unit can carry.
+ *
+ * Consumption alone under-sizes badly whenever the battery is large relative
+ * to reported usage — and reported usage is a number the customer guesses,
+ * so under-reporting hours quietly shrinks the array while leaving the bank
+ * full size. Matching the unit as well means the system can actually recover
+ * its own storage.
+ */
+function sizePanelArray(
+  dailyEnergyWh: number,
+  sunHours: number,
+  unitKva: number,
+): number {
+  const forConsumption = (dailyEnergyWh / 1000 / sunHours) * PANEL_OVERSIZE_FACTOR;
+  const forUnit = unitKva * PV_TO_INVERTER_RATIO;
+  return Math.max(forConsumption, forUnit);
 }
 
 function computeInstallationFee(
@@ -447,7 +490,9 @@ export function calculate(
           dodForPreference(input.batteryPreference)) /
         1000,
     ),
-    panelArrayKwp: round2(sizePanelArray(dailyEnergyWh, sunHours)),
+    panelArrayKwp: round2(
+      sizePanelArray(dailyEnergyWh, sunHours, inverterRequiredW / 1000),
+    ),
   };
 
   // Inverter + battery — selected JOINTLY so only voltage-compatible pairs
@@ -535,24 +580,6 @@ export function calculate(
     }
   }
 
-  // Panels
-  const panelItem = selectPanel(catalog);
-  let panels: PanelSelection | null = null;
-  if (panelItem) {
-    const arrayKwp = sizePanelArray(dailyEnergyWh, sunHours);
-    const panelCount = Math.max(1, Math.ceil((arrayKwp * 1000) / panelItem.capacity));
-    panels = {
-      id: panelItem.id,
-      brand: panelItem.brand,
-      model: panelItem.model,
-      wattsPerPanel: panelItem.capacity,
-      count: panelCount,
-      totalKwp: round2((panelCount * panelItem.capacity) / 1000),
-      unitPriceKobo: panelItem.priceKobo,
-      totalPriceKobo: panelItem.priceKobo * panelCount,
-    };
-  }
-
   // All-in-one solar generator — considered against the inverter + battery
   // pair. Generators always use lithium-grade DOD for the storage check.
   const generatorStorageReqKwh = round2(
@@ -566,12 +593,38 @@ export function calculate(
   );
   let generator = generatorChoice?.selection ?? null;
   if (generator && inverter && batteries) {
-    // Both paths available. An all-in-one unit is one box, one warranty, and
-    // no parallel battery wiring — worth a modest premium over loose
-    // components, so it wins unless it costs meaningfully more.
-    const componentPathKobo = inverter.priceKobo + batteries.totalPriceKobo;
-    const generatorBudget = componentPathKobo * (1 + INTEGRATED_SYSTEM_PREMIUM);
-    if (generator.priceKobo <= generatorBudget) {
+    // Both paths available. An all-in-one is one box, one warranty and no
+    // parallel battery wiring, so it wins unless it costs meaningfully more.
+    //
+    // "More" is measured against components matched to the ALL-IN-ONE'S OWN
+    // capacity, not against the smallest build that clears the load. Those
+    // are different questions: the quoted components are sized to the
+    // requirement, while the all-in-one usually carries more kVA and kWh than
+    // that, and charging it for capacity the customer also receives means no
+    // all-in-one is ever preferred. Falls back to the quoted components when
+    // nothing in stock can match the unit spec-for-spec.
+    const equivalentBankWh =
+      generator.storageKwh * 1000 * ROUNDTRIP_EFFICIENCY_LITHIUM * DOD_LITHIUM;
+    const equivalent = selectPowerPath(
+      catalog,
+      generator.capacityKva * 1000,
+      peakSurgeW,
+      equivalentBankWh,
+      input.batteryPreference,
+      [], // scratch: notes about a hypothetical build are not the customer's
+    );
+    const quotedComponentsKobo = inverter.priceKobo + batteries.totalPriceKobo;
+    const equivalentKobo = equivalent?.comboKobo ?? quotedComponentsKobo;
+
+    // Two gates, both of which must pass. The first asks whether the unit is
+    // fair value for the capacity it carries; the second keeps that judgement
+    // from running away with the customer's bill.
+    const goodValueForSpec =
+      generator.priceKobo <= equivalentKobo * (1 + INTEGRATED_SYSTEM_PREMIUM);
+    const affordableUplift =
+      generator.priceKobo <= quotedComponentsKobo * (1 + INTEGRATED_MAX_UPLIFT);
+
+    if (goodValueForSpec && affordableUplift) {
       inverter = null;
       batteries = null;
     } else {
@@ -603,6 +656,26 @@ export function calculate(
     warnings.push(
       surgeWarningFor(peakSurgeW, `${generator.capacityKva} kVA all-in-one`),
     );
+  }
+
+  // Panels — sized last, because the array floor keys off the unit actually
+  // quoted, and that is only known once the all-in-one comparison has settled.
+  const panelItem = selectPanel(catalog);
+  let panels: PanelSelection | null = null;
+  if (panelItem) {
+    const quotedKva = generator?.capacityKva ?? inverter?.capacityKva ?? 0;
+    const arrayKwp = sizePanelArray(dailyEnergyWh, sunHours, quotedKva);
+    const panelCount = Math.max(1, Math.ceil((arrayKwp * 1000) / panelItem.capacity));
+    panels = {
+      id: panelItem.id,
+      brand: panelItem.brand,
+      model: panelItem.model,
+      wattsPerPanel: panelItem.capacity,
+      count: panelCount,
+      totalKwp: round2((panelCount * panelItem.capacity) / 1000),
+      unitPriceKobo: panelItem.priceKobo,
+      totalPriceKobo: panelItem.priceKobo * panelCount,
+    };
   }
 
   // Pricing — only when the whole core system resolved from the catalog.

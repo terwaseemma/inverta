@@ -476,17 +476,48 @@ describe('calculate — battery sizing', () => {
 });
 
 describe('calculate — solar array sizing', () => {
-  it('sizes kWp from daily energy and sun hours, rounds panel count up', () => {
-    // 3360Wh / 1000 / 5.5 × 1.25 = 0.764 kWp → 764W / 450W per panel → ceil(1.69) = 2 panels
-    const r = calculate(baseInput(), makeCatalog());
-    expect(r.panels!.count).toBe(2);
-    expect(r.panels!.totalKwp).toBeCloseTo(0.9, 1); // 2 × 450 = 900W = 0.9 kWp
+  // A heavy, long-running load so consumption clears the unit floor and the
+  // consumption half of the rule is actually observable.
+  const heavy = (over: Record<string, unknown> = {}) =>
+    baseInput({
+      appliances: [{ name: 'Workshop', wattage: 2000, quantity: 1, hoursPerDay: 10 }],
+      ...over,
+    });
+
+  it('sizes kWp from daily energy and sun hours when consumption dominates', () => {
+    // 20,000Wh / 1000 / 5.5 × 1.25 = 4.55 kWp → ceil(4545 / 450) = 11 panels.
+    // The 5kVA unit floor is 4.25 kWp, below that, so consumption decides.
+    const r = calculate(heavy({ sunHours: 5.5 }), makeCatalog());
+    expect(r.panels!.count).toBe(11);
   });
 
   it('respects the sunHours override (lower insolation → more panels)', () => {
-    const bright = calculate(baseInput({ sunHours: 6.0 }), makeCatalog());
-    const dim = calculate(baseInput({ sunHours: 3.0 }), makeCatalog());
+    const bright = calculate(heavy({ sunHours: 6.0 }), makeCatalog());
+    const dim = calculate(heavy({ sunHours: 3.0 }), makeCatalog());
     expect(dim.panels!.count).toBeGreaterThan(bright.panels!.count);
+  });
+
+  it('floors the array at what the quoted unit can carry', () => {
+    // 3360Wh/day at 5.5 PSH is only 0.76 kWp of consumption, but the system
+    // ships a 2kVA inverter and a 3.5kWh bank. Two panels could never recover
+    // that battery after an outage. Floor: 2kVA × 0.85 = 1.7 kWp → 4 panels.
+    const r = calculate(baseInput({ sunHours: 5.5 }), makeCatalog());
+    expect(r.inverter!.capacityKva).toBe(2);
+    expect(r.panels!.count).toBe(4);
+  });
+
+  it('floors against the all-in-one when one is quoted, not the inverter', () => {
+    // The unit in the quote sets the floor. A 3.6kVA all-in-one asks for
+    // 3.06 kWp → ceil(3060 / 450) = 7 panels, more than the 2kVA component
+    // path would have justified.
+    const withAio = makeCatalog({
+      generators: [
+        { id: 'gen', brand: 'G', model: 'AIO 3.6kVA/8kWh', capacity: 3.6, unit: 'KVA', storageKwh: 8, priceKobo: 1_000_000_00 },
+      ],
+    });
+    const r = calculate(baseInput({ sunHours: 5.5 }), withAio);
+    expect(r.generator).not.toBeNull();
+    expect(r.panels!.count).toBe(7);
   });
 });
 
@@ -678,6 +709,63 @@ describe('calculate — voltage compatibility', () => {
   });
 });
 
+describe('calculate — same-brand pairing', () => {
+  // Inverter and pack normally negotiate SOC over CAN/RS485; a mixed pair
+  // often cannot, and the inverter falls back to guessing from voltage.
+  const brandedCatalog = (alphaBatteryKobo: number) =>
+    makeCatalog({
+      inverters: [
+        { id: 'inv', brand: 'Alpha', model: '2kVA', capacity: 2, unit: 'KVA', priceKobo: 300_000_00 },
+      ],
+      batteries: [
+        { id: 'beta-bat', brand: 'Beta', model: 'Li 3.5kWh', capacity: 3.5, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 1_000_000_00 },
+        { id: 'alpha-bat', brand: 'Alpha', model: 'Li 3.5kWh', capacity: 3.5, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: alphaBatteryKobo },
+      ],
+    });
+
+  it('pays a small premium to keep the inverter and battery on one brand', () => {
+    // Alpha pack ₦1.05M vs Beta ₦1.0M — 5% dearer, inside the 10% tolerance.
+    const r = calculate(baseInput(), brandedCatalog(1_050_000_00));
+    expect(r.inverter!.brand).toBe('Alpha');
+    expect(r.batteries!.brand).toBe('Alpha');
+  });
+
+  it('takes the cheaper mixed pair when matching costs too much', () => {
+    // Alpha pack ₦1.5M is 50% dearer than Beta — past what BMS comms is worth.
+    const r = calculate(baseInput(), brandedCatalog(1_500_000_00));
+    expect(r.inverter!.brand).toBe('Alpha');
+    expect(r.batteries!.brand).toBe('Beta');
+  });
+
+  it('still quotes a mixed pair when the brand stocks no battery', () => {
+    const noAlphaBattery = makeCatalog({
+      inverters: [
+        { id: 'inv', brand: 'Alpha', model: '2kVA', capacity: 2, unit: 'KVA', priceKobo: 300_000_00 },
+      ],
+      batteries: [
+        { id: 'beta-bat', brand: 'Beta', model: 'Li 3.5kWh', capacity: 3.5, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 1_000_000_00 },
+      ],
+    });
+    const r = calculate(baseInput(), noAlphaBattery);
+    expect(r.batteries!.brand).toBe('Beta');
+  });
+
+  it('matches brands case- and whitespace-insensitively', () => {
+    // Installers type these by hand, so "haisic" and "Haisic " are one brand.
+    const messy = makeCatalog({
+      inverters: [
+        { id: 'inv', brand: 'Haisic ', model: '2kVA', capacity: 2, unit: 'KVA', priceKobo: 300_000_00 },
+      ],
+      batteries: [
+        { id: 'other', brand: 'WHC', model: 'Li 3.5kWh', capacity: 3.5, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 1_000_000_00 },
+        { id: 'same', brand: 'haisic', model: 'Li 3.5kWh', capacity: 3.5, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 1_050_000_00 },
+      ],
+    });
+    const r = calculate(baseInput(), messy);
+    expect(r.batteries!.id).toBe('same');
+  });
+});
+
 describe('calculate — all-in-one vs components', () => {
   // Component path here: 2kVA inverter ₦300k + 1× 3.5kWh lithium ₦1M = ₦1.3M.
   const withGenerator = (priceKobo: number) =>
@@ -694,19 +782,41 @@ describe('calculate — all-in-one vs components', () => {
     expect(r.batteries).toBeNull();
   });
 
-  it('still prefers an all-in-one within the 15% integration premium', () => {
-    // ₦1.4M vs ₦1.3M components = +7.7% → integrated simplicity wins.
-    const r = calculate(baseInput(), withGenerator(1_400_000_00));
+  it('judges the premium against matching capacity, not the minimum build', () => {
+    // The quoted components are 2kVA + 1x 3.5kWh = ₦1.3M, sized to a 0.54kVA
+    // load. Components matching the UNIT (3.6kVA, 8kWh) would be 5kVA ₦780k +
+    // 3x 3.5kWh ₦3M = ₦3.78M. At ₦1.6M the all-in-one is well inside 25% of
+    // that, and only 23% over the minimum build, so it wins. Judged against
+    // the minimum build alone it would have lost — which is why no all-in-one
+    // was ever recommended from a real catalog.
+    const r = calculate(baseInput(), withGenerator(1_600_000_00));
     expect(r.generator).not.toBeNull();
     expect(r.inverter).toBeNull();
   });
 
-  it('falls back to components when the all-in-one premium is too high', () => {
-    // ₦1.6M vs ₦1.3M components = +23% → too expensive to justify.
-    const r = calculate(baseInput(), withGenerator(1_600_000_00));
+  it('refuses an all-in-one that would balloon the final bill', () => {
+    // Still fair value for 3.6kVA/8kWh (₦2.4M is inside 25% of ₦3.78M), but
+    // +85% on the ₦1.3M the customer would otherwise have paid. The
+    // equivalent-capacity test alone would wave this through.
+    const r = calculate(baseInput(), withGenerator(2_400_000_00));
     expect(r.generator).toBeNull();
     expect(r.inverter).not.toBeNull();
     expect(r.batteries).not.toBeNull();
+  });
+
+  it('refuses an all-in-one that is poor value for its own capacity', () => {
+    // A 2kVA/3.5kWh unit matches the quoted build almost exactly, so both the
+    // equivalent and the minimum build are ₦1.3M. At ₦1.7M that is +31% —
+    // past the 25% integration premium, while still inside the 75% ceiling.
+    // Isolates the value gate from the affordability gate.
+    const tight = makeCatalog({
+      generators: [
+        { id: 'gen', brand: 'G', model: 'AIO 2kVA/3.5kWh', capacity: 2, unit: 'KVA', storageKwh: 3.5, priceKobo: 1_700_000_00 },
+      ],
+    });
+    const r = calculate(baseInput(), tight);
+    expect(r.generator).toBeNull();
+    expect(r.inverter).not.toBeNull();
   });
 
   it('excludes an all-in-one whose built-in battery is too small', () => {

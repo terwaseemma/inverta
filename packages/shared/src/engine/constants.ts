@@ -47,10 +47,42 @@ export const INVERTER_OVERSIZE_WARN_MULTIPLE = 2;
 export const INVERTER_OVERSIZE_WARN_MIN_GAP_KVA = 2;
 
 /**
+ * How much dearer a SAME-BRAND inverter + battery pair may be before the
+ * cheaper mixed-brand pair wins instead.
+ *
+ * Hybrid inverters and LiFePO4 packs normally negotiate over CAN or RS485 so
+ * the inverter reads true state of charge from the pack's BMS. Cross-brand
+ * pairs often fail to negotiate and the inverter falls back to inferring SOC
+ * from terminal voltage — worse charge control, and an argument with two
+ * warranty departments. Worth a modest premium to avoid.
+ *
+ * A preference, not a rule: when no same-brand pair is stocked, or it costs
+ * more than this, the cheapest compatible pair is still quoted.
+ */
+export const SAME_BRAND_PREMIUM = 0.1; // 10%
+
+/**
  * Oversizing on the solar array. Covers panel temperature derating (panels
  * run 50–70°C in Nigeria against a 25°C rating), soiling, and cable losses.
  */
 export const PANEL_OVERSIZE_FACTOR = 1.25;
+
+/**
+ * PV a hybrid inverter can usefully carry, as a fraction of its kVA rating.
+ *
+ * Sizing the array on consumption alone answers "what does the household
+ * use?" and ignores "can this system refill its own battery?". A 4.2kVA unit
+ * with an 8kWh bank was being quoted two panels because the customer reported
+ * light usage — an array that covers the day's load and leaves nothing to
+ * recover the bank after an outage.
+ *
+ * Used as a FLOOR, never a cap: heavy consumers still get the larger array
+ * their usage demands. Strictly this should read the unit's real MPPT rating,
+ * but the catalogue carries no PV-input column, and output kVA is the
+ * available proxy — hybrid units in this market accept roughly their own
+ * rating in PV.
+ */
+export const PV_TO_INVERTER_RATIO = 0.85;
 
 /** Battery round-trip efficiency — lithium recovers far more of what it stores. */
 export const ROUNDTRIP_EFFICIENCY_LITHIUM = 0.95;
@@ -75,11 +107,29 @@ export const MAX_PARALLEL_STRINGS_LITHIUM = 8;
 // Conservative on purpose — see lookups/sun-hours.ts on worst-month design.
 export const DEFAULT_SUN_HOURS = 4.0;
 
-// How much more an all-in-one solar generator may cost than the equivalent
-// inverter + battery bank and still be recommended. One box means simpler
-// wiring, a single warranty, and less that can be installed wrong — worth a
-// modest premium over loose components.
-export const INTEGRATED_SYSTEM_PREMIUM = 0.15; // 15%
+// How much more an all-in-one solar generator may cost than the EQUIVALENT-
+// CAPACITY inverter + battery bank and still be recommended. One box means
+// simpler wiring, a single warranty, one supplier to chase, and far less that
+// can be installed wrong — worth a real premium over loose components.
+//
+// Measured against components matched to the all-in-one's own kVA and kWh,
+// not against the smallest build that clears the load. Comparing a 1.5kVA /
+// 4kWh unit against a 1.2kVA / 2.56kWh build charges it for capacity the
+// customer is also receiving, and no all-in-one ever wins that comparison.
+export const INTEGRATED_SYSTEM_PREMIUM = 0.25; // 25%
+
+/**
+ * Ceiling on what an all-in-one may add to the price the customer would
+ * otherwise have paid for right-sized components.
+ *
+ * The equivalent-capacity test above asks "is this unit good value for what
+ * it is?" — it does NOT ask "can the customer afford the difference?". On its
+ * own it would let a 3.6kVA / 8kWh unit priced against 3.6kVA / 8kWh of
+ * components beat a 0.54kVA build the customer actually needed, tripling the
+ * quote. All-in-ones come in coarse sizes, so some uplift over a minimal
+ * build is unavoidable and expected; this bounds it.
+ */
+export const INTEGRATED_MAX_UPLIFT = 0.75; // 75% over the right-sized build
 
 // Generator CO2 math (for the "you saved X kg CO2/month" card).
 export const GEN_FUEL_CONSUMPTION_L_PER_KVA_HR = 0.3; // L/hr per kVA
