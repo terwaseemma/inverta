@@ -30,6 +30,23 @@ export const FUTURE_LOAD_RESERVE = 1.2;
 export const INVERTER_SURGE_MULTIPLE = 2;
 
 /**
+ * How far above the required size a quoted inverter may sit before the
+ * customer is told about it. A catalog gap is the usual cause: when the
+ * smallest stocked unit covering a 2.75 kVA load is 15 kVA, the system
+ * works but costs far more than the load warrants. Saying so is better
+ * than quoting it silently — the other inverter warnings only fire when
+ * stock is too SMALL, which left the opposite case invisible.
+ *
+ * Both thresholds must be met. The ratio alone would nag on every small
+ * home: a 360W load needs 0.54 kVA and the smallest unit anyone actually
+ * manufactures is 1–2 kVA, which is a 3× "oversize" that no installer can
+ * do anything about. The absolute floor keeps the warning for gaps that
+ * cost the customer real money.
+ */
+export const INVERTER_OVERSIZE_WARN_MULTIPLE = 2;
+export const INVERTER_OVERSIZE_WARN_MIN_GAP_KVA = 2;
+
+/**
  * Oversizing on the solar array. Covers panel temperature derating (panels
  * run 50–70°C in Nigeria against a 25°C rating), soiling, and cable losses.
  */

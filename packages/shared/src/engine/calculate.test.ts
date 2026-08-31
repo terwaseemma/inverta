@@ -257,6 +257,37 @@ describe('calculate — inverter sizing', () => {
     // Sanity — power factor and reserve are actually being applied.
     expect((10_000 / AGGREGATE_POWER_FACTOR) * FUTURE_LOAD_RESERVE).toBe(15_000);
   });
+
+  it('warns when a catalog gap forces a wildly oversized inverter', () => {
+    // Real Boost Power stock: 1.5 kVA and 15 kVA, nothing between. A 1835W
+    // load needs 2.75 kVA, so the 1.5 kVA is correctly excluded and the only
+    // remaining unit is 5.5× the requirement. That used to quote silently.
+    const gapped = makeCatalog({
+      inverters: [
+        { id: 'small', brand: 'H', model: '1.5kVA', capacity: 1.5, unit: 'KVA', priceKobo: 250_000_00 },
+        { id: 'huge', brand: 'H', model: '15kVA', capacity: 15, unit: 'KVA', priceKobo: 1_050_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Mixed load', wattage: 1835, quantity: 1, hoursPerDay: 3 }],
+      }),
+      gapped,
+    );
+    expect(r.inverter!.capacityKva).toBe(15);
+    expect(r.warnings.some((w) => w.includes('smallest inverter in stock'))).toBe(true);
+    // It should name the real requirement, not just grumble.
+    expect(r.warnings.some((w) => w.includes('2.75 kVA'))).toBe(true);
+  });
+
+  it('stays quiet when the oversize is only what the market sells', () => {
+    // 360W needs 0.54 kVA. The smallest inverter made is 2 kVA — a 3.7×
+    // ratio nobody can avoid, and only 1.46 kVA of absolute gap. Warning
+    // here would fire on virtually every small home.
+    const r = calculate(baseInput(), makeCatalog());
+    expect(r.inverter!.capacityKva).toBe(2);
+    expect(r.warnings.some((w) => w.includes('smallest inverter in stock'))).toBe(false);
+  });
 });
 
 describe('calculate — battery sizing', () => {
@@ -390,6 +421,59 @@ describe('calculate — battery sizing', () => {
     const r = calculate(baseInput({ batteryPreference: 'agm' }), lithiumOnly);
     expect(r.batteries!.chemistry).toBe('LITHIUM');
     expect(r.warnings.some((w) => w.toLowerCase().includes('falling back'))).toBe(true);
+  });
+
+  it(
+    'bounds an appliance by its daily usage, not the whole backup window',
+    () => {
+      // A kettle boils for 30 min a day. It cannot draw for six hours of an
+      // outage, so the bank owes it 1800W × 0.5h = 900Wh — not 1800W × 6h.
+      const r = calculate(
+        baseInput({
+          appliances: [{ name: 'Kettle', wattage: 1800, quantity: 1, hoursPerDay: 0.5 }],
+          backupHours: 6,
+        }),
+        makeCatalog(),
+      );
+      // 900Wh ÷ (0.95 × 0.8) = 1184Wh → 1.18 kWh
+      expect(r.requirements.batteryBankKwh).toBe(1.18);
+    },
+  );
+
+  it('caps an always-on appliance at the backup window', () => {
+    // The fridge runs 24h/day, so the window is the binding constraint:
+    // 200W × 0.4 duty × 6h = 480Wh ÷ (0.95 × 0.8) = 631Wh → 0.63 kWh.
+    const r = calculate(
+      baseInput({
+        appliances: [
+          { name: 'Fridge', wattage: 200, quantity: 1, hoursPerDay: 24, dutyCycle: 0.4 },
+        ],
+        backupHours: 6,
+      }),
+      makeCatalog(),
+    );
+    expect(r.requirements.batteryBankKwh).toBe(0.63);
+  });
+
+  it('never sizes the bank above a full day of consumption', () => {
+    // Everything here runs well under the six-hour window, so the outage
+    // cannot draw more than the household uses all day. Sizing on average
+    // draw × window used to ask for 3070W × 6h = 18.4kWh against 1.6kWh of
+    // actual daily energy.
+    const r = calculate(
+      baseInput({
+        appliances: [
+          { name: 'Kettle', wattage: 1800, quantity: 1, hoursPerDay: 0.5 },
+          { name: 'Microwave', wattage: 1000, quantity: 1, hoursPerDay: 0.3 },
+          { name: 'TV', wattage: 270, quantity: 1, hoursPerDay: 4 },
+        ],
+        backupHours: 6,
+      }),
+      makeCatalog(),
+    );
+    // Convert the gross bank back to the energy it actually delivers.
+    const deliverableWh = r.requirements.batteryBankKwh * 1000 * 0.95 * 0.8;
+    expect(deliverableWh).toBeLessThanOrEqual(r.dailyEnergyWh + 1);
   });
 });
 
@@ -631,6 +715,132 @@ describe('calculate — all-in-one vs components', () => {
     const r = calculate(baseInput(), tooSmall);
     expect(r.generator).toBeNull();
     expect(r.inverter).not.toBeNull();
+  });
+
+  it('drops the inverter oversize note when an all-in-one is quoted instead', () => {
+    // The 15 kVA is the only inverter that covers a 2.75 kVA load, which
+    // would earn an oversize warning — but the all-in-one wins on price, so
+    // the note describes hardware that is not in the quote and must not show.
+    const gapped = makeCatalog({
+      inverters: [
+        { id: 'small', brand: 'H', model: '1.5kVA', capacity: 1.5, unit: 'KVA', priceKobo: 250_000_00 },
+        { id: 'huge', brand: 'H', model: '15kVA', capacity: 15, unit: 'KVA', priceKobo: 1_050_000_00 },
+      ],
+      batteries: [
+        { id: 'big', brand: 'H', model: '15kWh', capacity: 15, unit: 'KWH', chemistry: 'LITHIUM', priceKobo: 1_800_000_00 },
+      ],
+      generators: [
+        { id: 'aio', brand: 'H', model: 'AIO 4.2kVA/8kWh', capacity: 4.2, unit: 'KVA', storageKwh: 8, priceKobo: 1_450_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Mixed load', wattage: 1835, quantity: 1, hoursPerDay: 3 }],
+      }),
+      gapped,
+    );
+    expect(r.generator!.capacityKva).toBe(4.2);
+    expect(r.inverter).toBeNull();
+    expect(r.warnings.some((w) => w.includes('smallest inverter in stock'))).toBe(false);
+  });
+});
+
+describe('calculate — warnings follow what is actually quoted', () => {
+  // Every note about the inverter + battery pair is meaningless once an
+  // all-in-one wins the comparison and those components leave the quote.
+
+  it('drops the load-exceeds note when an all-in-one covers the load', () => {
+    const catalog = makeCatalog({
+      generators: [
+        { id: 'aio', brand: 'G', model: 'AIO 15kVA/30kWh', capacity: 15, unit: 'KVA', storageKwh: 30, priceKobo: 5_000_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Huge load', wattage: 10_000, quantity: 1, hoursPerDay: 2 }],
+      }),
+      catalog,
+    );
+    expect(r.generator).not.toBeNull();
+    expect(r.inverter).toBeNull();
+    expect(r.warnings.some((w) => w.includes('Load exceeds largest inverter'))).toBe(false);
+  });
+
+  it('drops the parallel-strings note when an all-in-one is quoted', () => {
+    // 12 AGM strings on the component path, but the all-in-one wins — there
+    // are no strings to be impractical about.
+    const catalog = makeCatalog({
+      generators: [
+        { id: 'aio', brand: 'G', model: 'AIO 5kVA/16kWh', capacity: 5, unit: 'KVA', storageKwh: 16, priceKobo: 3_000_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Load', wattage: 2000, quantity: 1, hoursPerDay: 6 }],
+        batteryPreference: 'agm',
+      }),
+      catalog,
+    );
+    expect(r.generator).not.toBeNull();
+    expect(r.warnings.some((w) => w.includes('parallel'))).toBe(false);
+  });
+
+  it('still explains an empty quote when nothing compatible is stocked', () => {
+    // The suppression must key off an all-in-one replacing the components,
+    // not off the components being absent — otherwise the one note that
+    // explains a blank quote disappears with them.
+    const catalog = makeCatalog({
+      inverters: [
+        { id: 'inv12', brand: 'H', model: '1.5kVA 12V', capacity: 1.5, unit: 'KVA', systemVoltage: 12, priceKobo: 250_000_00 },
+      ],
+      batteries: [
+        { id: 'bat48', brand: 'H', model: '15kWh 48V', capacity: 15, unit: 'KWH', systemVoltage: 48, chemistry: 'LITHIUM', priceKobo: 1_800_000_00 },
+      ],
+      generators: [],
+    });
+    const r = calculate(baseInput(), catalog);
+    expect(r.inverter).toBeNull();
+    expect(r.generator).toBeNull();
+    expect(r.warnings.some((w) => w.toLowerCase().includes('voltage-compatible'))).toBe(true);
+  });
+
+  it('names the all-in-one, not an inverter, when it cannot start the loads', () => {
+    // Surge is not a fact about the component path — it is a physical risk
+    // that follows whatever is quoted. A 2 kVA all-in-one delivers 4 kW of
+    // surge against a 6 kW pump inrush, so the customer must still hear it.
+    const catalog = makeCatalog({
+      generators: [
+        { id: 'aio', brand: 'G', model: 'AIO 2kVA/3kWh', capacity: 2, unit: 'KVA', storageKwh: 3, priceKobo: 1_000_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Pump', wattage: 1000, quantity: 1, hoursPerDay: 2, surgeFactor: 6 }],
+      }),
+      catalog,
+    );
+    expect(r.generator!.capacityKva).toBe(2);
+    const surge = r.warnings.find((w) => w.includes('Startup surge'));
+    expect(surge).toBeDefined();
+    expect(surge).toContain('all-in-one');
+    expect(surge).not.toContain('inverter');
+  });
+
+  it('prefers a surge-capable all-in-one over a cheaper one that cannot start', () => {
+    const catalog = makeCatalog({
+      generators: [
+        { id: 'cheap', brand: 'G', model: 'AIO 2kVA/3kWh', capacity: 2, unit: 'KVA', storageKwh: 3, priceKobo: 800_000_00 },
+        { id: 'capable', brand: 'G', model: 'AIO 5kVA/3kWh', capacity: 5, unit: 'KVA', storageKwh: 3, priceKobo: 1_200_000_00 },
+      ],
+    });
+    const r = calculate(
+      baseInput({
+        appliances: [{ name: 'Pump', wattage: 1000, quantity: 1, hoursPerDay: 2, surgeFactor: 6 }],
+      }),
+      catalog,
+    );
+    expect(r.generator!.capacityKva).toBe(5);
+    expect(r.warnings.some((w) => w.includes('Startup surge'))).toBe(false);
   });
 });
 

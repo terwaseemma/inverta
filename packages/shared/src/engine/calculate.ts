@@ -3,6 +3,7 @@ import {
   type BatteryPreference,
   type CalculationInput,
   type CalculationResult,
+  type EngineAppliance,
   type EngineCatalog,
   type EngineCatalogItem,
   type BatterySelection,
@@ -19,6 +20,8 @@ import {
   DEFAULT_SUN_HOURS,
   FUTURE_LOAD_RESERVE,
   INTEGRATED_SYSTEM_PREMIUM,
+  INVERTER_OVERSIZE_WARN_MIN_GAP_KVA,
+  INVERTER_OVERSIZE_WARN_MULTIPLE,
   INVERTER_SURGE_MULTIPLE,
   DIESEL_CO2_KG_PER_L,
   DOD_LEAD_ACID,
@@ -158,6 +161,14 @@ interface PowerPath {
   inverter: EngineCatalogItem;
   bank: BatteryConfig;
   comboKobo: number;
+  /**
+   * No stocked inverter can deliver the startup surge. Reported by the
+   * caller rather than here: the same risk applies to an all-in-one if one
+   * wins the comparison — a compressor that trips the unit on start does so
+   * whether the electronics sit in one box or two — so the warning has to
+   * name whatever is actually quoted.
+   */
+  surgeExceedsStock?: boolean;
 }
 
 // Joint inverter + battery selection: every inverter that covers the load is
@@ -225,9 +236,16 @@ function selectPowerPath(
       `Load exceeds largest inverter (${best.inverter.capacity} kVA). Sized to largest available; consider a larger unit.`,
     );
   }
-  if (surgeExceedsStock) {
+  // The opposite of loadExceedsStock: nothing small enough is carried, so the
+  // cheapest workable unit is far bigger than the load needs. The quote is
+  // safe, just needlessly large — the customer should hear why.
+  if (
+    !loadExceedsStock &&
+    best.inverter.capacity >= requiredKva * INVERTER_OVERSIZE_WARN_MULTIPLE &&
+    best.inverter.capacity - requiredKva >= INVERTER_OVERSIZE_WARN_MIN_GAP_KVA
+  ) {
     warnings.push(
-      `Startup surge (~${Math.round(requiredSurgeW / 1000)} kW) may exceed what a ${best.inverter.capacity} kVA inverter can deliver. Motors and compressors could trip it — the installer should confirm the surge rating or size up.`,
+      `This load needs about ${round2(requiredKva)} kVA, but the smallest inverter in stock that covers it is ${best.inverter.capacity} kVA. The system will work — it is simply larger, and dearer, than the load requires. Ask the installer whether a mid-size unit is available.`,
     );
   }
   const bankChemistry = best.bank.item.chemistry ?? 'LITHIUM';
@@ -237,16 +255,34 @@ function selectPowerPath(
     );
   }
 
+  best.surgeExceedsStock = surgeExceedsStock;
   return best;
+}
+
+// Startup surge reads the same whichever box the electronics live in, so
+// the message is shared and the unit named by the caller.
+function surgeWarningFor(requiredSurgeW: number, unitLabel: string): string {
+  return `Startup surge (~${Math.round(requiredSurgeW / 1000)} kW) may exceed what a ${unitLabel} can deliver. Motors and compressors could trip it — the installer should confirm the surge rating or size up.`;
+}
+
+interface GeneratorChoice {
+  selection: GeneratorSelection;
+  /** No fitting all-in-one can also deliver the startup surge. */
+  surgeExceedsStock: boolean;
 }
 
 // Smallest (by price) all-in-one generator that covers BOTH the load and the
 // storage requirement — generators aren't stacked, so one unit must fit.
+// Surge-capable units are preferred; when none can start the loads we still
+// quote the cheapest fitting unit and flag it, mirroring the inverter path.
+// Skipping this check let an all-in-one be recommended for compressor loads
+// no inverter in the same catalog was allowed to take.
 function selectGenerator(
   catalog: EngineCatalog,
   requiredW: number,
   requiredStorageKwh: number,
-): GeneratorSelection | null {
+  requiredSurgeW: number,
+): GeneratorChoice | null {
   const fits = catalog.generators
     .filter(
       (g) =>
@@ -256,9 +292,12 @@ function selectGenerator(
         (g.storageKwh ?? 0) >= requiredStorageKwh,
     )
     .sort((a, b) => a.priceKobo - b.priceKobo);
-  const chosen = fits[0];
+  const carriesSurge = fits.filter(
+    (g) => g.capacity * 1000 * INVERTER_SURGE_MULTIPLE >= requiredSurgeW,
+  );
+  const chosen = carriesSurge[0] ?? fits[0];
   if (!chosen) return null;
-  return {
+  const selection: GeneratorSelection = {
     id: chosen.id,
     brand: chosen.brand,
     model: chosen.model,
@@ -266,6 +305,7 @@ function selectGenerator(
     storageKwh: chosen.storageKwh ?? 0,
     priceKobo: chosen.priceKobo,
   };
+  return { selection, surgeExceedsStock: carriesSurge.length === 0 };
 }
 
 function selectPanel(catalog: EngineCatalog): EngineCatalogItem | null {
@@ -278,15 +318,34 @@ function selectPanel(catalog: EngineCatalog): EngineCatalogItem | null {
 /**
  * Energy the bank must deliver over the backup window.
  *
- * Uses the duty-cycle-weighted AVERAGE draw, not the sum of every nameplate.
- * A fridge is rated 200W but its compressor runs ~40% of the time, so over
- * six hours it takes 480Wh from the battery, not 1,200Wh. Sizing on
- * nameplates assumes every appliance in the house runs flat out for the
- * whole outage — a scenario that never happens, and one that roughly
- * doubles the quoted battery bank.
+ * Two things bound what an appliance can take from the battery:
+ *
+ * 1. Duty cycle. A fridge is rated 200W but its compressor runs ~40% of the
+ *    time, so over six hours it takes 480Wh, not 1,200Wh.
+ * 2. Daily usage. An appliance is only a load while it is switched on. A
+ *    kettle used 20 minutes a day cannot draw for six hours of an outage,
+ *    so it contributes min(hoursPerDay, backupHours) — never more.
+ *
+ * Applying only the first is what produces a bank sized to deliver more
+ * during one outage than the household consumes in a full day: a 1.7kW
+ * average draw held for six hours is 10.1kWh, against 4.3kWh of actual
+ * daily energy. Bounding by usage as well keeps the quoted bank — and the
+ * storage figure the all-in-one units are judged against — in step with
+ * how the appliances are really used.
  */
-function sizeBatteryBank(averageLoadW: number, backupHours: number): number {
-  return averageLoadW * backupHours;
+function sizeBatteryBank(
+  appliances: EngineAppliance[],
+  backupHours: number,
+): number {
+  return appliances.reduce(
+    (sum, a) =>
+      sum +
+      a.wattage *
+        a.quantity *
+        dutyCycleOf(a) *
+        Math.min(a.hoursPerDay, backupHours),
+    0,
+  );
 }
 
 function batteryUnitsNeeded(
@@ -378,7 +437,7 @@ export function calculate(
   // factor before comparing, then given headroom for load growth.
   const inverterRequiredW =
     (totalLoadW / AGGREGATE_POWER_FACTOR) * FUTURE_LOAD_RESERVE;
-  const bankNeededWh = sizeBatteryBank(averageLoadW, input.backupHours);
+  const bankNeededWh = sizeBatteryBank(input.appliances, input.backupHours);
   const requirements: SystemRequirements = {
     inverterKva: round2(inverterRequiredW / 1000),
     peakSurgeW: Math.round(peakSurgeW),
@@ -396,13 +455,22 @@ export function calculate(
   let inverter: InverterSelection | null = null;
   let batteries: BatterySelection | null = null;
 
+  // Warnings that describe the inverter + battery path specifically: an
+  // oversized unit, a load bigger than anything stocked, an impractical
+  // parallel count, a chemistry substitution, no compatible pairing at all.
+  // An all-in-one may win the comparison below and null those components
+  // out, at which point every one of these describes hardware the customer
+  // is not being sold — so they are held here and flushed only if the
+  // component path survives.
+  const componentNotes: string[] = [];
+
   const path = selectPowerPath(
     catalog,
     inverterRequiredW,
     peakSurgeW,
     bankNeededWh,
     input.batteryPreference,
-    warnings,
+    componentNotes,
   );
   if (path) {
     inverter = {
@@ -447,7 +515,7 @@ export function calculate(
     const soloBank =
       catalog.inverters.length === 0
         ? cheapestBatteryConfig(
-            batteryPool(catalog, input.batteryPreference, warnings),
+            batteryPool(catalog, input.batteryPreference, componentNotes),
             bankNeededWh,
           )
         : null;
@@ -490,7 +558,13 @@ export function calculate(
   const generatorStorageReqKwh = round2(
     bankNeededWh / (ROUNDTRIP_EFFICIENCY_LITHIUM * DOD_LITHIUM) / 1000,
   );
-  let generator = selectGenerator(catalog, inverterRequiredW, generatorStorageReqKwh);
+  const generatorChoice = selectGenerator(
+    catalog,
+    inverterRequiredW,
+    generatorStorageReqKwh,
+    peakSurgeW,
+  );
+  let generator = generatorChoice?.selection ?? null;
   if (generator && inverter && batteries) {
     // Both paths available. An all-in-one unit is one box, one warranty, and
     // no parallel battery wiring — worth a modest premium over loose
@@ -507,6 +581,28 @@ export function calculate(
     // Generator is the only complete power+storage option.
     inverter = null;
     batteries = null;
+  }
+
+  // The comparison has settled, so the component notes can be judged. What
+  // makes them stale is an all-in-one REPLACING the components — not the
+  // components being absent. When no generator is quoted these notes are the
+  // only account the customer gets, including the case where no compatible
+  // pairing existed and the quote came back empty.
+  if (!generator) {
+    warnings.push(...componentNotes);
+  }
+
+  // Surge is the exception. It is not a fact about the component path but a
+  // physical risk that follows whichever unit is quoted, so it is reported
+  // against that unit rather than dropped with the rest.
+  if (inverter && path?.surgeExceedsStock) {
+    warnings.push(
+      surgeWarningFor(peakSurgeW, `${inverter.capacityKva} kVA inverter`),
+    );
+  } else if (generator && generatorChoice?.surgeExceedsStock) {
+    warnings.push(
+      surgeWarningFor(peakSurgeW, `${generator.capacityKva} kVA all-in-one`),
+    );
   }
 
   // Pricing — only when the whole core system resolved from the catalog.
