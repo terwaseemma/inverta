@@ -181,15 +181,31 @@ export async function deleteAccountAction(
     return { fieldErrors: { confirm: 'Type DELETE (in capitals) to confirm.' } };
   }
 
+  // Collect the team's logins before the cascade removes their Member rows —
+  // afterwards there is no record of which Supabase users belonged here.
+  const teamLogins = await prisma.member.findMany({
+    where: { installerId: installer.id, authUserId: { not: null } },
+    select: { authUserId: true },
+  });
+
   await prisma.installer.delete({ where: { id: installer.id } });
 
-  try {
-    const admin = createSupabaseAdminClient();
-    await admin.auth.admin.deleteUser(authUserId);
-  } catch (err) {
-    // The tenant data is gone either way; a stranded login can't reach any
-    // data and can be removed from the Supabase dashboard.
-    console.error('[settings] auth user deletion failed:', err);
+  // Owner first, then every marketer. A marketer login left behind would be
+  // signed in to an account that no longer exists.
+  const logins = new Set<string>([authUserId]);
+  for (const m of teamLogins) if (m.authUserId) logins.add(m.authUserId);
+
+  for (const id of logins) {
+    try {
+      // Created inside the try, as before: a missing service key must not
+      // throw after the tenant data is already gone.
+      const admin = createSupabaseAdminClient();
+      await admin.auth.admin.deleteUser(id);
+    } catch (err) {
+      // The tenant data is gone either way; a stranded login can't reach any
+      // data and can be removed from the Supabase dashboard.
+      console.error('[settings] auth user deletion failed:', id, err);
+    }
   }
 
   const supabase = createSupabaseServerClient();

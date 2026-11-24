@@ -17,6 +17,8 @@ export async function notifyNewLead(params: {
   customerName: string;
   customerEmail?: string;
   systemSummary: string;
+  /** The marketer whose link produced the lead, if any. */
+  marketerName?: string;
 }) {
   const { installerId, installerEmail, leadId, customerName, systemSummary } = params;
 
@@ -24,7 +26,9 @@ export async function notifyNewLead(params: {
     data: {
       installerId,
       type: 'NEW_LEAD',
-      title: 'New lead from your calculator',
+      title: params.marketerName
+        ? `New lead via ${params.marketerName}`
+        : 'New lead from your calculator',
       message: `${customerName} requested a quote — ${systemSummary}`,
       linkUrl: `/dashboard/leads/${leadId}`,
     },
@@ -39,7 +43,11 @@ export async function notifyNewLead(params: {
     html: emailLayout({
       heading: 'You have a new lead 🎉',
       bodyHtml: `
-        <p><strong>${escapeHtml(customerName)}</strong> just used your solar calculator.</p>
+        <p><strong>${escapeHtml(customerName)}</strong> just used your solar calculator${
+          params.marketerName
+            ? ` through <strong>${escapeHtml(params.marketerName)}</strong>'s link`
+            : ''
+        }.</p>
         <p>System sizing: <strong>${escapeHtml(systemSummary)}</strong></p>
         <p>Their contact details and full requirements are waiting in your dashboard — leads answered within an hour close far more often.</p>
       `,
@@ -104,6 +112,29 @@ export async function sendWelcomeEmail(params: {
         <p>Share that link on WhatsApp, Instagram, or flyers — every customer who fills it becomes a lead in your dashboard, and you can send them a branded PDF proposal in two clicks.</p>
       `,
       cta: { label: 'Go to your dashboard', url: `${appUrl}/dashboard` },
+    }),
+  });
+}
+
+// Sent when an owner invites a marketer. The link is a one-time secret, so the
+// owner's Team page also shows it to copy — Resend may not be configured, and
+// most invites here travel over WhatsApp anyway.
+export async function sendTeamInviteEmail(params: {
+  to: string;
+  name: string;
+  businessName: string;
+  inviteUrl: string;
+}) {
+  await sendEmail({
+    to: params.to,
+    subject: `${params.businessName} invited you to sell solar on Inverta`,
+    html: emailLayout({
+      heading: `You're invited, ${escapeHtml(params.name.split(' ')[0] ?? '')}`,
+      bodyHtml: `
+        <p><strong>${escapeHtml(params.businessName)}</strong> has added you to their team on Inverta.</p>
+        <p>Set a password and you'll get your own solar calculator link. Share it with customers — every quote they request through it is credited to you, and you can follow each lead from your phone.</p>
+      `,
+      cta: { label: 'Accept the invite', url: params.inviteUrl },
     }),
   });
 }

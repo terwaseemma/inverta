@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/onboarding', '/admin'];
+// /team is the marketer area. Role is enforced in the page guards (lib/auth),
+// not here — middleware only knows whether someone is signed in.
+const PROTECTED_PREFIXES = ['/dashboard', '/onboarding', '/admin', '/team'];
 const AUTH_ROUTES = ['/login', '/signup'];
 
 export async function middleware(request: NextRequest) {

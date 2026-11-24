@@ -3,7 +3,13 @@ import { Mail } from 'lucide-react';
 
 export const metadata = { title: 'Check your email · Inverta' };
 
-export default function VerifyEmailPage() {
+export default function VerifyEmailPage({
+  searchParams,
+}: {
+  searchParams: { for?: string };
+}) {
+  // Marketers joining a team arrive here too, and have no installer profile.
+  const joiningTeam = searchParams.for === 'team';
   return (
     <div className="space-y-6 text-center">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/15 text-primary">
@@ -13,7 +19,10 @@ export default function VerifyEmailPage() {
         <h1 className="text-2xl font-bold tracking-tight">Check your email</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           We&apos;ve sent a confirmation link to your inbox. Click it to verify your
-          account and finish setting up your installer profile.
+          account and{' '}
+          {joiningTeam
+            ? 'get your calculator link.'
+            : 'finish setting up your installer profile.'}
         </p>
       </div>
       <p className="text-xs text-muted-foreground">

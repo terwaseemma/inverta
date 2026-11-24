@@ -47,6 +47,21 @@ export async function signupAction(
     };
   }
 
+  // Someone invited onto a team must join through their invite link. Signing
+  // up here would make them the owner of a new, empty installer account and
+  // strand the invite — the email can only hold one login.
+  const invited = await prisma.member.findFirst({
+    where: { email: data.email.toLowerCase() },
+    select: { installer: { select: { businessName: true } } },
+  });
+  if (invited) {
+    return {
+      fieldErrors: {
+        email: `This email has been invited to join ${invited.installer.businessName}. Use the invite link in your email instead.`,
+      },
+    };
+  }
+
   const supabase = createSupabaseServerClient();
   const origin = headers().get('origin') ?? process.env.NEXT_PUBLIC_APP_URL ?? '';
 
@@ -95,6 +110,17 @@ export async function signupAction(
       phone: data.phone,
       region: data.region,
       calculatorLink: { create: { slug } },
+      // The account holder's own seat. Identity resolves through Member.
+      members: {
+        create: {
+          authUserId: authData.user.id,
+          email: data.email.toLowerCase(),
+          name: data.contactName,
+          phone: data.phone,
+          role: 'OWNER',
+          acceptedAt: new Date(),
+        },
+      },
     },
   });
 

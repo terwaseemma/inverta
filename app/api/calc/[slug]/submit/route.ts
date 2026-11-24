@@ -4,6 +4,7 @@ import {
   calculate,
   findPreset,
   nairaToKobo,
+  normalizeMemberCode,
   sunHoursForRegion,
   DEFAULT_SUN_HOURS,
   CalculationError,
@@ -140,6 +141,18 @@ export async function POST(
     throw err;
   }
 
+  // Credit a marketer only if the code belongs to an active marketer on THIS
+  // installer's account. The code arrives from the browser, so it is a claim
+  // to check, not a fact: a code from another company, a switched-off
+  // marketer, or a guess simply leaves the lead uncredited.
+  const memberCode = normalizeMemberCode(data.memberCode);
+  const marketer = memberCode
+    ? await prisma.member.findFirst({
+        where: { code: memberCode, installerId: installer.id, role: 'MARKETER', isActive: true },
+        select: { id: true, name: true },
+      })
+    : null;
+
   // 5. Persist the lead (input + result snapshots for audit / re-runs).
   const lead = await prisma.lead.create({
     data: {
@@ -148,6 +161,7 @@ export async function POST(
       customerEmail: data.customerEmail,
       customerPhone: data.customerPhone,
       referralSource: data.referralSource,
+      sourcedByMemberId: marketer?.id ?? null,
       submittedIp: ip === 'unknown' ? null : ip,
       submittedUserAgent: req.headers.get('user-agent'),
       inputSnapshot: data as unknown as object,
@@ -166,6 +180,7 @@ export async function POST(
       customerName: data.customerName,
       customerEmail: data.customerEmail,
       systemSummary: systemSummary(result as never),
+      marketerName: marketer?.name,
     });
   } catch {
     // swallow — the lead is already saved

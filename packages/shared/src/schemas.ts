@@ -28,6 +28,26 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+// Team — an owner inviting a marketer onto their account.
+export const memberInviteSchema = z.object({
+  name: z.string().trim().min(2, 'Enter their name').max(80),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  phone: z.string().trim().max(32).optional(),
+});
+export type MemberInviteInput = z.infer<typeof memberInviteSchema>;
+
+// Team — the marketer setting their password from the invite link. The email
+// is fixed by the invite, so only the password is collected.
+export const acceptInviteSchema = z
+  .object({
+    password: signupSchema.shape.password,
+    confirm: z.string(),
+  })
+  .refine((v) => v.password === v.confirm, {
+    path: ['confirm'],
+    message: 'Passwords do not match.',
+  });
+
 export const onboardingStep1Schema = z.object({
   // Logo is optional for now — file upload to R2 lands in a later slice.
   logoUrl: z.string().url().optional().or(z.literal('').transform(() => undefined)),
@@ -241,6 +261,10 @@ export const calculatorSubmissionSchema = z.object({
   customerEmail: z.string().email(),
   customerPhone: z.string().min(7).max(32),
   referralSource: z.string().max(80).optional(),
+  // Set when the customer arrived through a marketer's link. Resolved
+  // server-side against the installer's active marketers; an unknown code is
+  // ignored rather than rejected, so the customer still gets their quote.
+  memberCode: z.string().max(40).optional(),
   consent: z.literal(true, {
     errorMap: () => ({ message: 'Consent is required to contact the customer.' }),
   }),

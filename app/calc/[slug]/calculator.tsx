@@ -75,6 +75,8 @@ interface Props {
   installerName: string;
   region: string;
   presets: AppliancePreset[];
+  /** Set when the customer came through a marketer's link — credits the lead. */
+  memberCode?: string;
 }
 
 interface SubmitResponse {
@@ -83,7 +85,7 @@ interface SubmitResponse {
   installer: { businessName: string; phone: string; email: string };
 }
 
-export function Calculator({ slug, installerName, presets }: Props) {
+export function Calculator({ slug, installerName, presets, memberCode }: Props) {
   const [step, setStep] = useState<Step>(1);
 
   // Step 1 — current spend (all optional)
@@ -147,6 +149,7 @@ export function Calculator({ slug, installerName, presets }: Props) {
           customerEmail,
           customerPhone,
           referralSource: referralSource || undefined,
+          memberCode,
           consent,
           monthlyElectricityBillNaira: asNumber(monthlyElectricityBill),
           monthlyFuelCostNaira: asNumber(monthlyFuelCost),

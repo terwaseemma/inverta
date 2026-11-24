@@ -28,6 +28,7 @@ export default async function LeadDetailPage({
     where: { id: params.id, installerId: installer.id },
     include: {
       proposals: { orderBy: { createdAt: 'desc' } },
+      sourcedBy: { select: { id: true, name: true } },
     },
   });
   if (!lead) notFound();
@@ -71,6 +72,11 @@ export default async function LeadDetailPage({
                 year: 'numeric',
               })}
             </span>
+            {lead.sourcedBy && (
+              <Link href={`/dashboard/leads?member=${lead.sourcedBy.id}`} className="text-primary hover:underline">
+                Brought in by {lead.sourcedBy.name}
+              </Link>
+            )}
             {input.referralSource && <span>Heard via: {input.referralSource}</span>}
           </div>
         </div>
