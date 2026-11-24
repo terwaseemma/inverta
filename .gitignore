@@ -57,3 +57,8 @@ coverage/
 # Old-layout leftovers — an empty platform/ shell can linger due to Windows
 # file locks after the monorepo consolidation. Safe to ignore.
 platform/
+
+# Agent skills installed via `npx skills add` — third-party code, tens of MB.
+# skills-lock.json is deliberately NOT ignored: it pins each skill and its
+# hash, so the set is reproducible without carrying the payload in git.
+.agents/
