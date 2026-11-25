@@ -1,0 +1,11 @@
+-- AlterTable
+ALTER TABLE "CatalogItem" ADD COLUMN "maxPvW" INTEGER,
+ADD COLUMN "maxPvVoc" INTEGER,
+ADD COLUMN "mpptCount" INTEGER,
+ADD COLUMN "maxPvCurrentA" DECIMAL(6,2);
+
+-- AlterTable
+ALTER TABLE "MasterCatalogItem" ADD COLUMN "maxPvW" INTEGER,
+ADD COLUMN "maxPvVoc" INTEGER,
+ADD COLUMN "mpptCount" INTEGER,
+ADD COLUMN "maxPvCurrentA" DECIMAL(6,2);

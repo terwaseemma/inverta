@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Download } from 'lucide-react';
 import { applyMargin, formatKobo } from '@inverta/shared';
+import { ProductThumb } from '@/components/uploads/ProductImageField';
 import { importMasterItemAction, type CatalogFormState } from './actions';
 
 export interface ImportableItemDto {
@@ -14,6 +15,7 @@ export interface ImportableItemDto {
   priceKobo: number;
   /** Product note with the wholesale marker already removed; null if that was all it said. */
   note: string | null;
+  imageUrl: string | null;
 }
 
 const initial: CatalogFormState = {};
@@ -62,6 +64,7 @@ function ImportRow({ item }: { item: ImportableItemDto }) {
         value={marginValid ? String(parsedValue) : ''}
       />
 
+      <ProductThumb url={item.imageUrl} alt={`${item.brand} ${item.model}`} />
       <div className="min-w-[170px] flex-1">
         <div className="text-[15px] font-medium">
           {item.brand} {item.model}

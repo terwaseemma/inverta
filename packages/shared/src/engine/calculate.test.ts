@@ -500,7 +500,7 @@ describe('calculate — solar array sizing', () => {
   it('floors the array at what the quoted unit can carry', () => {
     // 3360Wh/day at 5.5 PSH is only 0.76 kWp of consumption, but the system
     // ships a 2kVA inverter and a 3.5kWh bank. Two panels could never recover
-    // that battery after an outage. Floor: 2kVA × 0.85 = 1.7 kWp → 4 panels.
+    // that battery after an outage. Floor: 2kVA × 0.78 = 1.56 kWp → 4 panels.
     const r = calculate(baseInput({ sunHours: 5.5 }), makeCatalog());
     expect(r.inverter!.capacityKva).toBe(2);
     expect(r.panels!.count).toBe(4);
@@ -508,7 +508,7 @@ describe('calculate — solar array sizing', () => {
 
   it('floors against the all-in-one when one is quoted, not the inverter', () => {
     // The unit in the quote sets the floor. A 3.6kVA all-in-one asks for
-    // 3.06 kWp → ceil(3060 / 450) = 7 panels, more than the 2kVA component
+    // 2.81 kWp → ceil(2808 / 450) = 7 panels, more than the 2kVA component
     // path would have justified.
     const withAio = makeCatalog({
       generators: [
@@ -519,6 +519,21 @@ describe('calculate — solar array sizing', () => {
     expect(r.generator).not.toBeNull();
     expect(r.panels!.count).toBe(7);
   });
+
+  it.each([550, 600, 620, 650])(
+    'fits a 4.2kVA all-in-one with 6 panels of %iW, as installers do',
+    (watts) => {
+      const aio = makeCatalog({
+        generators: [
+          { id: 'gen', brand: 'Haisic', model: 'AIO 4.2kW/8kWh', capacity: 4.2, unit: 'KVA', storageKwh: 8, priceKobo: 1_000_000_00 },
+        ],
+        panels: [{ id: 'p', brand: 'Jinko', model: `${watts}W`, capacity: watts, unit: 'W', priceKobo: 150_000_00 }],
+      });
+      const r = calculate(baseInput({ sunHours: 5.5 }), aio);
+      expect(r.generator).not.toBeNull();
+      expect(r.panels!.count).toBe(6);
+    },
+  );
 });
 
 describe('calculate — cost math', () => {
@@ -1025,5 +1040,42 @@ describe('calculate — CO2', () => {
       (5 * GEN_FUEL_CONSUMPTION_L_PER_KVA_HR * 4 * 30 * DIESEL_CO2_KG_PER_L).toFixed(1),
     );
     expect(r.co2SavedKgPerMonth).toBe(expected);
+  });
+});
+
+describe('calculate — PV input limit (maxPvW)', () => {
+  const withLimit = (maxPvW: number) =>
+    makeCatalog({
+      inverters: makeCatalog().inverters.map((i) => ({ ...i, maxPvW })),
+    });
+
+  it('never quotes more panel power than the unit accepts', () => {
+    const r = calculate(baseInput(), withLimit(900));
+    expect(r.panels).not.toBeNull();
+    expect(r.panels!.count * r.panels!.wattsPerPanel).toBeLessThanOrEqual(900);
+  });
+
+  it('warns when the usage needs more solar than the unit can take', () => {
+    const heavy = baseInput({
+      appliances: [{ name: 'Pump', wattage: 750, quantity: 2, hoursPerDay: 8 }],
+    });
+    const r = calculate(heavy, withLimit(900));
+    expect(r.panels!.count).toBe(2);
+    expect(r.warnings.some((w) => w.includes('accepts at most 900 W'))).toBe(true);
+  });
+
+  it('does not warn when the limit only trims rounding above the floor', () => {
+    const light = baseInput({
+      appliances: [{ name: 'LED bulb', wattage: 10, quantity: 2, hoursPerDay: 2 }],
+    });
+    const r = calculate(light, withLimit(1200));
+    expect(r.panels!.count * r.panels!.wattsPerPanel).toBeLessThanOrEqual(1200);
+    expect(r.warnings.some((w) => w.includes('accepts at most'))).toBe(false);
+  });
+
+  it('sizes exactly as before when the limit is unknown', () => {
+    const a = calculate(baseInput(), makeCatalog());
+    const b = calculate(baseInput(), withLimit(0));
+    expect(b.panels!.count).toBe(a.panels!.count);
   });
 });

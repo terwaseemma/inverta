@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { notifyProposalViewed } from '@/lib/notifications';
 import { captureServer, nairaBand } from '@/lib/analytics-server';
 import { TrackedLink } from '@/components/analytics/TrackedLink';
+import { SystemDiagram } from '@/components/proposal/SystemDiagram';
+import { getInstalledSystem } from '@/lib/proposal-system';
 
 export const metadata = { title: 'Your solar proposal · Inverta' };
 export const dynamic = 'force-dynamic';
@@ -33,7 +35,7 @@ export default async function PublicProposalPage({
           bankAccountName: true,
         },
       },
-      lead: { select: { customerName: true } },
+      lead: { select: { customerName: true, resultSnapshot: true } },
     },
   });
   if (!proposal) notFound();
@@ -63,6 +65,7 @@ export default async function PublicProposalPage({
   }
 
   const installer = proposal.installer;
+  const system = await getInstalledSystem(proposal);
   const firstName = proposal.lead.customerName.split(' ')[0] ?? '';
   const waNumber = installer.phone.replace(/[^\d]/g, '');
   const validUntil = proposal.validUntil?.toLocaleDateString('en-NG', {
@@ -113,6 +116,20 @@ export default async function PublicProposalPage({
         {proposal.customMessage && (
           <section className="card mt-4 p-6">
             <p className="whitespace-pre-line text-[15px] leading-relaxed">{proposal.customMessage}</p>
+          </section>
+        )}
+
+        {system && (
+          <section className="card mt-4 p-6 sm:p-8" aria-labelledby="system">
+            <h2 id="system" className="section-title">
+              Your system, as it will be installed
+            </h2>
+            <p className="mt-1 text-[15px] text-muted-foreground">
+              The panels on your roof charge the battery through the inverter, which powers your home.
+            </p>
+            <div className="mt-6">
+              <SystemDiagram system={system} />
+            </div>
           </section>
         )}
 

@@ -40,10 +40,15 @@ export async function saveCatalogItemAction(
     unit: formData.get('unit'),
     voltage: num(formData.get('voltage')),
     systemVoltage: num(formData.get('systemVoltage')),
+    maxPvW: num(formData.get('maxPvW')),
+    maxPvVoc: num(formData.get('maxPvVoc')),
+    mpptCount: num(formData.get('mpptCount')),
+    maxPvCurrentA: num(formData.get('maxPvCurrentA')),
     storageKwh: num(formData.get('storageKwh')),
     chemistry: str(formData.get('chemistry')),
     priceNaira: num(formData.get('priceNaira')),
     notes: str(formData.get('notes')),
+    imageUrl: String(formData.get('imageUrl') ?? ''),
   });
 
   if (!parsed.success) {
@@ -65,9 +70,14 @@ export async function saveCatalogItemAction(
     voltage: d.voltage ?? null,
     systemVoltage: d.type === 'INVERTER' || d.type === 'BATTERY' ? (d.systemVoltage ?? null) : null,
     storageKwh: d.type === 'GENERATOR' ? (d.storageKwh ?? null) : null,
+    maxPvW: d.type === 'INVERTER' || d.type === 'GENERATOR' ? (d.maxPvW ?? null) : null,
+    maxPvVoc: d.type === 'INVERTER' || d.type === 'GENERATOR' ? (d.maxPvVoc ?? null) : null,
+    mpptCount: d.type === 'INVERTER' || d.type === 'GENERATOR' ? (d.mpptCount ?? null) : null,
+    maxPvCurrentA: d.type === 'INVERTER' || d.type === 'GENERATOR' ? (d.maxPvCurrentA ?? null) : null,
     chemistry: d.chemistry ?? null,
     priceKobo: nairaToKobo(d.priceNaira),
     notes: d.notes ?? null,
+    imageUrl: d.imageUrl ?? null,
   };
 
   const id = str(formData.get('id'));
@@ -87,6 +97,7 @@ export async function saveCatalogItemAction(
   await captureServer('catalog_item_saved', installer.id, {
     action: id ? 'updated' : 'added',
     type: d.type.toLowerCase(),
+    has_image: Boolean(d.imageUrl),
     brand: d.brand,
   });
   revalidatePath('/dashboard/catalog');
@@ -184,11 +195,16 @@ export async function importMasterItemAction(
       unit: master.unit,
       voltage: master.voltage,
       systemVoltage: master.systemVoltage,
+      maxPvW: master.maxPvW,
+      maxPvVoc: master.maxPvVoc,
+      mpptCount: master.mpptCount,
+      maxPvCurrentA: master.maxPvCurrentA,
       storageKwh: master.storageKwh,
       chemistry: master.chemistry,
       priceKobo: applyMargin(master.priceKobo, parsed.data),
       // The wholesale marker describes the platform listing, not their stock.
       notes: stripWholesaleNote(master.notes),
+      imageUrl: master.imageUrl,
     },
   });
 

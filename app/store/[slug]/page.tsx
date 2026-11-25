@@ -98,8 +98,15 @@ export default async function StorefrontPage({
             {products.map((p) => (
               <li key={p.id} className="card flex flex-col overflow-hidden">
                 {p.imageUrl ? (
+                  // Product shots are usually on white: show the whole product on
+                  // white, not cropped to fill the frame.
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.imageUrl} alt={p.name} className="aspect-[4/3] w-full object-cover" />
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full bg-white object-contain p-4"
+                  />
                 ) : (
                   <div className="grid aspect-[4/3] w-full place-items-center bg-secondary">
                     <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />

@@ -35,6 +35,12 @@ export interface EngineCatalogItem {
   systemVoltage?: number | null;
   /** Built-in battery capacity — solar generators only */
   storageKwh?: number | null;
+  /**
+   * Most solar (PV) power the unit's chargers accept, in watts, from its spec
+   * label. Inverters and all-in-ones only. Null = unknown: the array is then
+   * sized against the unit's kVA alone.
+   */
+  maxPvW?: number | null;
   chemistry?: BatteryChemistry | null;
   priceKobo: number;
 }

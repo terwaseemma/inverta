@@ -77,9 +77,15 @@ export const catalogItemSchema = z
       .refine((v) => [12, 24, 48].includes(v), 'System voltage must be 12, 24, or 48')
       .optional(),
     storageKwh: z.number().positive().max(10_000).optional(),
+    // PV input limits from the spec label (inverters and all-in-ones).
+    maxPvW: z.number().int().positive().max(200_000).optional(),
+    maxPvVoc: z.number().int().positive().max(2000).optional(),
+    mpptCount: z.number().int().min(1).max(12).optional(),
+    maxPvCurrentA: z.number().positive().max(1000).optional(),
     chemistry: z.enum(['LITHIUM', 'AGM', 'GEL']).optional(),
     priceNaira: z.number().min(0, 'Price is required').max(1_000_000_000),
     notes: z.string().max(200).optional(),
+    imageUrl: z.string().url().optional().or(z.literal('').transform(() => undefined)),
   })
   .superRefine((val, ctx) => {
     const unitByType: Record<string, string[]> = {

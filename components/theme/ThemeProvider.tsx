@@ -5,30 +5,30 @@ import { usePathname } from 'next/navigation';
 import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from 'next-themes';
 
 const STORAGE_KEY = 'theme';
-/** Fired by ThemeToggle when someone picks a theme, so the route default stops applying. */
+/** Fired by ThemeToggle when someone picks a theme, so the default stops applying. */
 export const THEME_CHOICE_EVENT = 'inverta:theme-choice';
 
-/**
- * The theme a page shows to someone who has never picked one: the marketing
- * homepage is dark, everything else light.
- */
-export function routeDefaultTheme(pathname: string | null): 'dark' | 'light' {
-  return pathname === '/' ? 'dark' : 'light';
+/** Pages that are always dark, whatever the visitor picked: the homepage. */
+export function routeForcedTheme(pathname: string | null): 'dark' | undefined {
+  return pathname === '/' ? 'dark' : undefined;
 }
 
-// next-themes, with a per-route default that holds until the visitor picks a
-// theme with the toggle; from then on their choice applies on every page.
+/** The theme every other page shows to someone who has never picked one. */
+const DEFAULT_THEME = 'light';
+
+// next-themes with two rules:
 //
-// - First paint: next-themes' pre-paint script reads the saved choice or falls
-//   back to `defaultTheme`, which we set from the route, so a first visit to
-//   the homepage paints dark with no flash.
-// - Moving between pages: next-themes keeps its own state from the first page,
-//   so while there's no saved choice we force each route's default
-//   (forcedTheme never writes to storage). It's only set after mount, so the
-//   server render can't override a saved choice before the page reads it.
+// - The homepage is always dark and has no toggle. Its forced theme is known
+//   from the path alone, so it's set from the first (server) render and the
+//   pre-paint script paints it dark with no flash, saved choice or not.
+// - Every other page is light until the visitor picks a theme with the
+//   toggle; their choice then applies everywhere else and is remembered.
+//   While there's no saved choice, light is forced after mount too, because
+//   next-themes keeps its state from the first page it loaded (which may
+//   have been the dark homepage). forcedTheme never writes to storage.
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   const pathname = usePathname();
-  const routeDefault = routeDefaultTheme(pathname);
+  const routeForced = routeForcedTheme(pathname);
   const [hasChoice, setHasChoice] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -52,8 +52,8 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     <NextThemesProvider
       {...props}
       storageKey={STORAGE_KEY}
-      defaultTheme={routeDefault}
-      forcedTheme={hasChoice === false ? routeDefault : undefined}
+      defaultTheme={DEFAULT_THEME}
+      forcedTheme={routeForced ?? (hasChoice === false ? DEFAULT_THEME : undefined)}
     >
       {children}
     </NextThemesProvider>

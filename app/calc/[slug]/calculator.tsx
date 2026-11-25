@@ -23,6 +23,28 @@ import type { AppliancePreset, CalculationResult } from '@inverta/shared';
 import { findPreset, formatKobo } from '@inverta/shared';
 import { cn } from '@/lib/utils';
 import { ApplianceIcon } from './appliance-icons';
+import { SystemDiagram } from '@/components/proposal/SystemDiagram';
+import type { InstalledSystem } from '@/lib/system-layout';
+
+/** The quoted system in the shape the installation picture draws, or null when there's nothing to assemble. */
+function installedFrom(data: SubmitResponse): InstalledSystem | null {
+  const r = data.result;
+  if (!r.panels || (!r.generator && !r.inverter)) return null;
+  const img = (id: string | undefined) => (id ? data.images?.[id] ?? null : null);
+  return {
+    panels: { name: `${r.panels.brand} ${r.panels.model}`, count: r.panels.count, imageUrl: img(r.panels.id), watts: r.panels.wattsPerPanel },
+    inverter: r.inverter
+      ? { name: `${r.inverter.brand} ${r.inverter.model}`, count: 1, imageUrl: img(r.inverter.id), kva: r.inverter.capacityKva }
+      : null,
+    batteries: r.batteries
+      ? { name: `${r.batteries.brand} ${r.batteries.model}`, count: r.batteries.count, imageUrl: img(r.batteries.id), kwhEach: r.batteries.singleUnitCapacityKwh }
+      : null,
+    generator: r.generator
+      ? { name: `${r.generator.brand} ${r.generator.model}`, count: 1, imageUrl: img(r.generator.id), kva: r.generator.capacityKva, kwh: r.generator.storageKwh }
+      : null,
+    accessories: (r.accessories ?? []).map((a) => ({ name: a.name, count: a.quantity })),
+  };
+}
 import { track } from '@/lib/analytics';
 
 type Step = 1 | 2 | 3;
@@ -58,6 +80,8 @@ interface SubmitResponse {
   leadId: string;
   result: CalculationResult;
   installer: { businessName: string; phone: string; email: string };
+  /** Photos of the picked parts, by catalog item id (only those with one). */
+  images?: Record<string, string>;
 }
 
 export function Calculator({ slug, installerName, presets, memberCode }: Props) {
@@ -746,6 +770,7 @@ function Results({
 }) {
   const r = data.result;
   const installer = data.installer;
+  const installed = installedFrom(data);
   const priced = Boolean(r.catalogComplete && r.panels && r.pricing);
 
   const power = r.generator
@@ -811,6 +836,7 @@ function Results({
           <Part
             icon={Zap}
             label="All-in-one solar generator"
+            imageUrl={data.images?.[r.generator.id]}
             value={`${r.generator.capacityKva} kVA · ${r.generator.storageKwh} kWh`}
             sub={`${r.generator.brand} ${r.generator.model}`}
           />
@@ -819,12 +845,14 @@ function Results({
             <Part
               icon={Zap}
               label="Inverter"
+              imageUrl={r.inverter ? data.images?.[r.inverter.id] : undefined}
               value={r.inverter ? `${r.inverter.capacityKva} kVA` : `~${r.requirements.inverterKva} kVA`}
               sub={r.inverter ? `${r.inverter.brand} ${r.inverter.model}` : 'Recommended minimum size'}
             />
             <Part
               icon={Battery}
               label="Battery bank"
+              imageUrl={r.batteries ? data.images?.[r.batteries.id] : undefined}
               value={
                 r.batteries ? `${r.batteries.totalCapacityKwh} kWh` : `~${r.requirements.batteryBankKwh} kWh`
               }
@@ -839,10 +867,26 @@ function Results({
         <Part
           icon={Sun}
           label="Solar array"
+          imageUrl={r.panels ? data.images?.[r.panels.id] : undefined}
           value={r.panels ? `${r.panels.totalKwp} kWp` : `~${r.requirements.panelArrayKwp} kWp`}
           sub={r.panels ? `${r.panels.count} × ${r.panels.brand} ${r.panels.model}` : 'Recommended array size'}
         />
       </section>
+
+      {/* The same parts, assembled as they'd be installed: built live from this quote. */}
+      {installed && (
+        <section className="card mt-4 p-6 sm:p-8" aria-labelledby="assembled">
+          <h2 id="assembled" className="section-title">
+            How it fits together
+          </h2>
+          <p className="mt-1 text-[15px] text-muted-foreground">
+            Your panels charge the battery through the inverter, which powers your home.
+          </p>
+          <div className="mt-6">
+            <SystemDiagram system={installed} />
+          </div>
+        </section>
+      )}
 
       {r.estimatedBackupHoursTypical !== null && (
         <section className="card mt-4 p-6">
@@ -993,14 +1037,23 @@ function Part({
   label,
   value,
   sub,
+  imageUrl,
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
   sub?: string;
+  /** The picked product's photo, when the installer added one. */
+  imageUrl?: string;
 }) {
   return (
     <div className="card p-5">
+      {imageUrl && (
+        <div className="mb-4 grid h-32 place-items-center overflow-hidden rounded-xl bg-white">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageUrl} alt={sub ?? label} className="h-full w-full object-contain p-2" />
+        </div>
+      )}
       <div className="flex items-center gap-2.5">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary">
           <Icon className="h-[18px] w-[18px] text-muted-foreground" aria-hidden />

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { prisma } from '@/lib/prisma';
 import { buildProposalPdf } from '@/lib/pdf/proposal-pdf';
+import { getInstalledSystem } from '@/lib/proposal-system';
 import {
   parseInputSnapshot,
   parseResultSnapshot,
@@ -62,6 +63,17 @@ export async function GET(
         }
       : null;
 
+  // The installation picture, from the line items, with its product photos.
+  const installed = await getInstalledSystem(proposal);
+  let system: { system: NonNullable<typeof installed>; images: Record<string, Awaited<ReturnType<typeof fetchLogo>>> } | null = null;
+  if (installed) {
+    const urls = [installed.inverter, installed.batteries, installed.generator]
+      .map((p) => p?.imageUrl)
+      .filter((u): u is string => Boolean(u));
+    const fetched = await Promise.all(urls.map((u) => fetchLogo(u)));
+    system = { system: installed, images: Object.fromEntries(urls.map((u, i) => [u, fetched[i]])) };
+  }
+
   const pdf = await renderToBuffer(
     buildProposalPdf({
       installer: proposal.installer,
@@ -72,6 +84,7 @@ export async function GET(
       customMessage: proposal.customMessage,
       systemLabel: systemLabel(result),
       recommendation: recommendation(result),
+      system,
       loadRows,
       loadTotals,
       items: proposal.items,

@@ -16,6 +16,8 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   useEffect(() => setOpen(false), [pathname]);
+  // The homepage is always dark (ThemeProvider), so it has no toggle.
+  const showToggle = pathname !== '/';
 
   return (
     <header className="relative z-20 w-full">
@@ -42,7 +44,7 @@ export function Header() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          <ThemeToggle />
+          {showToggle && <ThemeToggle />}
           <Link href="/login" className="btn btn-ghost">
             Sign in
           </Link>
@@ -52,7 +54,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
-          <ThemeToggle />
+          {showToggle && <ThemeToggle />}
           <button
             type="button"
             className="btn btn-secondary h-10 w-10 px-0"

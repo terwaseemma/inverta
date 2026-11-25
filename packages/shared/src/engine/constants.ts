@@ -78,11 +78,15 @@ export const PANEL_OVERSIZE_FACTOR = 1.25;
  *
  * Used as a FLOOR, never a cap: heavy consumers still get the larger array
  * their usage demands. Strictly this should read the unit's real MPPT rating,
- * but the catalogue carries no PV-input column, and output kVA is the
- * available proxy — hybrid units in this market accept roughly their own
- * rating in PV.
+ * and where the catalogue has the unit's maxPvW it bounds this floor; output
+ * kVA is the proxy for everything else.
+ *
+ * Calibrated to installer practice: a 4.2kVA unit (e.g. a Haisic 4.2kVA/8kWh
+ * all-in-one) is fitted with 6 panels of 550–650W. 0.78 gives exactly 6 for
+ * every panel in that range (3.28 kWp: 5.96 → 6 at 550W, 5.04 → 6 at 650W);
+ * 0.85 gave 7 at 550W.
  */
-export const PV_TO_INVERTER_RATIO = 0.85;
+export const PV_TO_INVERTER_RATIO = 0.78;
 
 /** Battery round-trip efficiency — lithium recovers far more of what it stores. */
 export const ROUNDTRIP_EFFICIENCY_LITHIUM = 0.95;

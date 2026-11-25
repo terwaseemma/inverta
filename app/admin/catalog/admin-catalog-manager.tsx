@@ -5,6 +5,8 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Eye, EyeOff, Package, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import { formatKobo } from '@inverta/shared';
 import { cn } from '@/lib/utils';
+import { describePv, PvSpecFields } from '@/components/catalog/PvSpecFields';
+import { ProductImageField, ProductThumb } from '@/components/uploads/ProductImageField';
 import {
   deleteMasterItemAction,
   saveMasterItemAction,
@@ -22,10 +24,15 @@ export interface MasterItemDto {
   unit: 'KVA' | 'KWH' | 'AH' | 'W' | 'UNIT';
   voltage: number | null;
   systemVoltage: number | null;
+  maxPvW: number | null;
+  maxPvVoc: number | null;
+  mpptCount: number | null;
+  maxPvCurrentA: number | null;
   storageKwh: number | null;
   chemistry: 'LITHIUM' | 'AGM' | 'GEL' | null;
   priceKobo: number;
   notes: string | null;
+  imageUrl: string | null;
   isActive: boolean;
 }
 
@@ -61,7 +68,8 @@ function describeCapacity(item: MasterItemDto): string {
   if (item.type === 'GENERATOR') {
     return `${item.capacity} kVA output · ${item.storageKwh ?? '?'} kWh battery`;
   }
-  const sysV = item.systemVoltage ? ` · ${item.systemVoltage}V system` : '';
+  const pv = describePv(item);
+  const sysV = (item.systemVoltage ? ` · ${item.systemVoltage}V system` : '') + (pv ? ` · ${pv}` : '');
   switch (item.unit) {
     case 'KVA': return `${item.capacity} kVA${sysV}`;
     case 'KWH': return `${item.capacity} kWh${sysV}`;
@@ -179,6 +187,7 @@ function ItemRow({ item }: { item: MasterItemDto }) {
         !item.isActive && 'opacity-50',
       )}
     >
+      <ProductThumb url={item.imageUrl} alt={`${item.brand} ${item.model}`} />
       <div className="min-w-[180px] flex-1">
         <div className="text-[15px] font-medium">
           {item.brand} {item.model}
@@ -321,6 +330,8 @@ function ItemForm({
           </label>
         )}
 
+        {(type === 'INVERTER' || type === 'GENERATOR') && <PvSpecFields item={item} errors={err} />}
+
         {type === 'GENERATOR' && (
           <FormField
             label="Built-in battery (kWh)"
@@ -384,6 +395,8 @@ function ItemForm({
           error={err.notes}
         />
       </div>
+
+      <ProductImageField initialUrl={item?.imageUrl} />
 
       <label className="flex items-center gap-2 text-sm">
         <input

@@ -400,9 +400,13 @@ function sizePanelArray(
   dailyEnergyWh: number,
   sunHours: number,
   unitKva: number,
+  maxPvW?: number | null,
 ): number {
   const forConsumption = (dailyEnergyWh / 1000 / sunHours) * PANEL_OVERSIZE_FACTOR;
-  const forUnit = unitKva * PV_TO_INVERTER_RATIO;
+  // The kVA proxy can exceed what a small unit's charger accepts (a 2kVA unit
+  // may take only 1.2kW of PV), so a known PV limit bounds the floor.
+  const proxy = unitKva * PV_TO_INVERTER_RATIO;
+  const forUnit = maxPvW ? Math.min(proxy, maxPvW / 1000) : proxy;
   return Math.max(forConsumption, forUnit);
 }
 
@@ -664,8 +668,32 @@ export function calculate(
   let panels: PanelSelection | null = null;
   if (panelItem) {
     const quotedKva = generator?.capacityKva ?? inverter?.capacityKva ?? 0;
-    const arrayKwp = sizePanelArray(dailyEnergyWh, sunHours, quotedKva);
-    const panelCount = Math.max(1, Math.ceil((arrayKwp * 1000) / panelItem.capacity));
+    const unitItem = generator
+      ? catalog.generators.find((g) => g.id === generator!.id)
+      : inverter
+        ? catalog.inverters.find((i) => i.id === inverter!.id)
+        : undefined;
+    const maxPvW = unitItem?.maxPvW ?? null;
+    const arrayKwp = sizePanelArray(dailyEnergyWh, sunHours, quotedKva, maxPvW);
+    let panelCount = Math.max(1, Math.ceil((arrayKwp * 1000) / panelItem.capacity));
+
+    // Never quote more PV than the unit can take: panels past its limit are
+    // money the customer spends for power the charger throws away.
+    if (maxPvW) {
+      const fits = Math.max(1, Math.floor(maxPvW / panelItem.capacity));
+      if (panelCount > fits) {
+        const neededKwp = (dailyEnergyWh / 1000 / sunHours) * PANEL_OVERSIZE_FACTOR;
+        panelCount = fits;
+        const unitName = generator
+          ? `${generator.capacityKva} kVA all-in-one`
+          : `${inverter!.capacityKva} kVA inverter`;
+        if (neededKwp * 1000 > fits * panelItem.capacity) {
+          warnings.push(
+            `The ${unitName} accepts at most ${maxPvW.toLocaleString('en-NG')} W of solar, so the array is limited to ${fits} panels. Your usage would need about ${round2(neededKwp)} kWp — a larger inverter would let the panels keep up.`,
+          );
+        }
+      }
+    }
     panels = {
       id: panelItem.id,
       brand: panelItem.brand,

@@ -19,6 +19,11 @@ export interface MasterItemData {
   chemistry: 'LITHIUM' | 'AGM' | 'GEL' | null;
   priceKobo: number;
   notes: string | null;
+  imageUrl: string | null;
+  maxPvW: number | null;
+  maxPvVoc: number | null;
+  mpptCount: number | null;
+  maxPvCurrentA: number | null;
 }
 
 export async function getActiveMasterItems(): Promise<MasterItemData[]> {
@@ -40,6 +45,11 @@ export async function getActiveMasterItems(): Promise<MasterItemData[]> {
       chemistry: r.chemistry,
       priceKobo: r.priceKobo,
       notes: r.notes,
+      imageUrl: r.imageUrl,
+      maxPvW: r.maxPvW,
+      maxPvVoc: r.maxPvVoc,
+      mpptCount: r.mpptCount,
+      maxPvCurrentA: r.maxPvCurrentA == null ? null : Number(r.maxPvCurrentA),
     }));
   }
 
@@ -55,6 +65,11 @@ export async function getActiveMasterItems(): Promise<MasterItemData[]> {
     chemistry: s.chemistry ?? null,
     priceKobo: s.priceKobo,
     notes: s.notes ?? null,
+    imageUrl: null,
+    maxPvW: null,
+    maxPvVoc: null,
+    mpptCount: null,
+    maxPvCurrentA: null,
   }));
 }
 
@@ -89,6 +104,11 @@ export async function copyItemsToInstaller(
       chemistry: item.chemistry,
       priceKobo: item.priceKobo,
       notes: stripWholesaleNote(item.notes),
+      imageUrl: item.imageUrl,
+      maxPvW: item.maxPvW,
+      maxPvVoc: item.maxPvVoc,
+      mpptCount: item.mpptCount,
+      maxPvCurrentA: item.maxPvCurrentA,
     })),
   });
   return count;

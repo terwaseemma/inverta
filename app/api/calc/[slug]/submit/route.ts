@@ -212,9 +212,24 @@ export async function POST(
     referral_source: data.referralSource ?? null,
   });
 
+  // Photos of the parts the engine picked, for the quote screen.
+  const picked = new Set(
+    [
+      (result as { inverter?: { id?: string } | null }).inverter?.id,
+      (result as { batteries?: { id?: string } | null }).batteries?.id,
+      (result as { panels?: { id?: string } | null }).panels?.id,
+      (result as { generator?: { id?: string } | null }).generator?.id,
+    ].filter(Boolean) as string[],
+  );
+  const images: Record<string, string> = {};
+  for (const c of installer.catalogItems) {
+    if (picked.has(c.id) && c.imageUrl) images[c.id] = c.imageUrl;
+  }
+
   return NextResponse.json({
     leadId: lead.id,
     result,
+    images,
     installer: {
       businessName: installer.businessName,
       phone: installer.phone,
@@ -234,6 +249,7 @@ function toEngineItem(c: {
   storageKwh: { toNumber(): number } | number | null;
   chemistry: string | null;
   priceKobo: number;
+  maxPvW?: number | null;
 }): EngineCatalogItem {
   const capacity =
     typeof c.capacity === 'number' ? c.capacity : Number(c.capacity.toNumber());
@@ -254,5 +270,6 @@ function toEngineItem(c: {
     storageKwh,
     chemistry: c.chemistry as BatteryChemistry | null,
     priceKobo: c.priceKobo,
+    maxPvW: c.maxPvW ?? null,
   };
 }

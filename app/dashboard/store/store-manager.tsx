@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Pencil, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
 import { formatKobo } from '@inverta/shared';
 import { cn } from '@/lib/utils';
+import { ProductImageField, ProductThumb } from '@/components/uploads/ProductImageField';
 import {
   deleteProductAction,
   saveProductAction,
@@ -104,18 +105,7 @@ function ProductRow({ product }: { product: ProductDto }) {
 
   return (
     <div className="flex flex-wrap items-center gap-3 px-6 py-4">
-      {product.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={product.imageUrl}
-          alt=""
-          className="h-11 w-11 rounded-xl border object-cover"
-        />
-      ) : (
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-secondary">
-          <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-        </div>
-      )}
+      <ProductThumb url={product.imageUrl} alt={product.name} />
       <div className="min-w-[160px] flex-1">
         <div className="text-[15px] font-medium">
           {product.name}
@@ -196,14 +186,9 @@ function ProductForm({
           defaultValue={product ? String(product.priceKobo / 100) : undefined}
           error={err.priceNaira}
         />
-        <FormField
-          label="Image URL (optional)"
-          name="imageUrl"
-          placeholder="https://…"
-          defaultValue={product?.imageUrl ?? undefined}
-          error={err.imageUrl}
-        />
       </div>
+      <ProductImageField initialUrl={product?.imageUrl} />
+      {err.imageUrl && <p className="text-[13px] text-destructive">{err.imageUrl}</p>}
       <label className="block space-y-1.5">
         <span className="text-sm font-medium">Description (optional)</span>
         <textarea

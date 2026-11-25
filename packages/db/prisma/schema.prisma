@@ -149,6 +149,13 @@ model CatalogItem {
   chemistry     BatteryChemistry?
   priceKobo     Int
   notes         String?
+  // Product photo (public URL in Supabase Storage). Optional.
+  imageUrl      String?
+  // Solar (PV) input limits from the unit's spec label: inverters and all-in-ones only.
+  maxPvW        Int?
+  maxPvVoc      Int?
+  mpptCount     Int?
+  maxPvCurrentA Decimal? @db.Decimal(6, 2)
   isActive      Boolean           @default(true)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -282,6 +289,13 @@ model MasterCatalogItem {
   chemistry     BatteryChemistry?
   priceKobo     Int // suggested resale price
   notes         String?
+  // Product photo (public URL in Supabase Storage). Optional.
+  imageUrl      String?
+  // Solar (PV) input limits from the unit's spec label: inverters and all-in-ones only.
+  maxPvW        Int?
+  maxPvVoc      Int?
+  mpptCount     Int?
+  maxPvCurrentA Decimal? @db.Decimal(6, 2)
   isActive      Boolean           @default(true)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt

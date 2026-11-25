@@ -31,10 +31,15 @@ export async function saveMasterItemAction(
     unit: formData.get('unit'),
     voltage: num(formData.get('voltage')),
     systemVoltage: num(formData.get('systemVoltage')),
+    maxPvW: num(formData.get('maxPvW')),
+    maxPvVoc: num(formData.get('maxPvVoc')),
+    mpptCount: num(formData.get('mpptCount')),
+    maxPvCurrentA: num(formData.get('maxPvCurrentA')),
     storageKwh: num(formData.get('storageKwh')),
     chemistry: formData.get('chemistry') || undefined,
     priceNaira: num(formData.get('priceNaira')),
     notes: String(formData.get('notes') ?? '').trim() || undefined,
+    imageUrl: String(formData.get('imageUrl') ?? ''),
   });
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -55,9 +60,14 @@ export async function saveMasterItemAction(
     voltage: d.voltage ?? null,
     systemVoltage: d.type === 'INVERTER' || d.type === 'BATTERY' ? (d.systemVoltage ?? null) : null,
     storageKwh: d.type === 'GENERATOR' ? (d.storageKwh ?? null) : null,
+    maxPvW: d.type === 'INVERTER' || d.type === 'GENERATOR' ? (d.maxPvW ?? null) : null,
+    maxPvVoc: d.type === 'INVERTER' || d.type === 'GENERATOR' ? (d.maxPvVoc ?? null) : null,
+    mpptCount: d.type === 'INVERTER' || d.type === 'GENERATOR' ? (d.mpptCount ?? null) : null,
+    maxPvCurrentA: d.type === 'INVERTER' || d.type === 'GENERATOR' ? (d.maxPvCurrentA ?? null) : null,
     chemistry: d.chemistry ?? null,
     priceKobo: nairaToKobo(d.priceNaira),
     notes: d.notes ?? null,
+    imageUrl: d.imageUrl ?? null,
     isActive: formData.get('isActive') === 'on',
   };
 

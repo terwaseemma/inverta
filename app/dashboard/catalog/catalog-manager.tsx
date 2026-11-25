@@ -5,6 +5,8 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Package, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import { formatKobo } from '@inverta/shared';
 import { cn } from '@/lib/utils';
+import { describePv, PvSpecFields } from '@/components/catalog/PvSpecFields';
+import { ProductImageField, ProductThumb } from '@/components/uploads/ProductImageField';
 import {
   deleteCatalogItemAction,
   loadStarterCatalogAction,
@@ -21,10 +23,15 @@ export interface CatalogItemDto {
   unit: 'KVA' | 'KWH' | 'AH' | 'W' | 'UNIT';
   voltage: number | null;
   systemVoltage: number | null;
+  maxPvW: number | null;
+  maxPvVoc: number | null;
+  mpptCount: number | null;
+  maxPvCurrentA: number | null;
   storageKwh: number | null;
   chemistry: 'LITHIUM' | 'AGM' | 'GEL' | null;
   priceKobo: number;
   notes: string | null;
+  imageUrl: string | null;
 }
 
 type ItemType = CatalogItemDto['type'];
@@ -59,7 +66,8 @@ function describeCapacity(item: CatalogItemDto): string {
   if (item.type === 'GENERATOR') {
     return `${item.capacity} kVA output · ${item.storageKwh ?? '?'} kWh battery`;
   }
-  const sysV = item.systemVoltage ? ` · ${item.systemVoltage}V system` : '';
+  const pv = describePv(item);
+  const sysV = (item.systemVoltage ? ` · ${item.systemVoltage}V system` : '') + (pv ? ` · ${pv}` : '');
   switch (item.unit) {
     case 'KVA': return `${item.capacity} kVA${sysV}`;
     case 'KWH': return `${item.capacity} kWh${sysV}`;
@@ -219,6 +227,7 @@ function ItemRow({ item }: { item: CatalogItemDto }) {
 
   return (
     <div className="flex flex-wrap items-center gap-3 px-6 py-4">
+      <ProductThumb url={item.imageUrl} alt={`${item.brand} ${item.model}`} />
       <div className="min-w-[180px] flex-1">
         <div className="text-[15px] font-medium">
           {item.brand} {item.model}
@@ -358,6 +367,8 @@ function ItemForm({
           </label>
         )}
 
+        {(type === 'INVERTER' || type === 'GENERATOR') && <PvSpecFields item={item} errors={err} />}
+
         {type === 'GENERATOR' && (
           <FormField
             label="Built-in battery (kWh)"
@@ -426,6 +437,8 @@ function ItemForm({
           error={err.notes}
         />
       </div>
+
+      <ProductImageField initialUrl={item?.imageUrl} />
 
       {state.error && (
         <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">

@@ -1,4 +1,6 @@
 import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import type { InstalledSystem } from '@/lib/system-layout';
+import { SystemDiagramPdf, type PdfImage } from './system-diagram-pdf';
 
 // Proposal PDF — structured after the classic Nigerian installer quote
 // (load analysis → recommendation → cost breakdown → payment → contact),
@@ -34,6 +36,8 @@ export interface ProposalPdfData {
   systemLabel: string;
   /** e.g. "5kVA inverter · 10kWh lithium battery · 2.7kWp solar panels" */
   recommendation: string | null;
+  /** The installation picture: the system from the line items, and its photos. */
+  system: { system: InstalledSystem; images: Record<string, PdfImage | null> } | null;
   loadRows: {
     name: string;
     powerW: number;
@@ -53,7 +57,9 @@ export interface ProposalPdfData {
 }
 
 const s = StyleSheet.create({
-  page: { padding: 0, fontSize: 9.5, fontFamily: 'Helvetica', color: NAVY },
+  // paddingBottom reserves the fixed footer's height on EVERY page; without it
+  // content flows under the footer wherever a page fills up.
+  page: { paddingTop: 0, paddingHorizontal: 0, paddingBottom: 86, fontSize: 9.5, fontFamily: 'Helvetica', color: NAVY },
 
   // Header band
   band: { backgroundColor: NAVY, paddingVertical: 22, paddingHorizontal: 40 },
@@ -65,7 +71,7 @@ const s = StyleSheet.create({
   bandDate: { fontSize: 9, color: '#b9b9c4', textAlign: 'right' },
   accent: { height: 4, backgroundColor: ORANGE },
 
-  body: { paddingHorizontal: 40, paddingTop: 24, paddingBottom: 80 },
+  body: { paddingHorizontal: 40, paddingTop: 24 },
 
   docTitle: { fontSize: 15, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' },
   docSub: { fontSize: 9, color: MUTED, marginTop: 3 },
@@ -300,14 +306,26 @@ export function buildProposalPdf(data: ProposalPdfData) {
             </View>
           )}
 
+          {/* System design: the installation, drawn from the line items */}
+          {data.system && (
+            <View style={s.section} wrap={false}>
+              <Text style={s.sectionTitle}>Your System Design</Text>
+              <SystemDiagramPdf system={data.system.system} images={data.system.images} width={500} />
+            </View>
+          )}
+
           {/* Cost breakdown */}
           <View style={s.section}>
-            <Text style={s.sectionTitle}>Cost Breakdown</Text>
-            <View style={s.th}>
-              <Text style={s.cItem}>Item</Text>
-              <Text style={s.cQty}>Qty</Text>
-              <Text style={s.cUnit}>Unit price</Text>
-              <Text style={s.cPrice}>Price</Text>
+            {/* Heading and header row move as one, so the heading never sits
+                alone at the foot of a page with its table on the next. */}
+            <View wrap={false} minPresenceAhead={60}>
+              <Text style={s.sectionTitle}>Cost Breakdown</Text>
+              <View style={s.th}>
+                <Text style={s.cItem}>Item</Text>
+                <Text style={s.cQty}>Qty</Text>
+                <Text style={s.cUnit}>Unit price</Text>
+                <Text style={s.cPrice}>Price</Text>
+              </View>
             </View>
             {data.items.map((item, i) => (
               <View key={i} style={[s.tr, ...(i % 2 ? [s.trZebra] : [])]}>

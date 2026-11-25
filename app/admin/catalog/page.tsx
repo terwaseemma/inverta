@@ -20,10 +20,15 @@ export default async function AdminCatalogPage() {
     unit: r.unit,
     voltage: r.voltage,
     systemVoltage: r.systemVoltage,
+    maxPvW: r.maxPvW,
+    maxPvVoc: r.maxPvVoc,
+    mpptCount: r.mpptCount,
+    maxPvCurrentA: r.maxPvCurrentA == null ? null : Number(r.maxPvCurrentA),
     storageKwh: r.storageKwh == null ? null : Number(r.storageKwh),
     chemistry: r.chemistry,
     priceKobo: r.priceKobo,
     notes: r.notes,
+    imageUrl: r.imageUrl,
     isActive: r.isActive,
   }));
 
