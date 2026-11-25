@@ -10,7 +10,7 @@ import { shareMetadata, storeShare } from '@/lib/og/share-copy';
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  return shareMetadata(await storeShare(params.slug));
+  return shareMetadata(await storeShare(params.slug), `/store/${encodeURIComponent(params.slug)}`);
 }
 
 const TYPE_LABELS: Record<string, string> = {

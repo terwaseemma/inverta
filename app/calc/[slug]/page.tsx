@@ -5,7 +5,7 @@ import { CalculatorShell } from './calculator-shell';
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  return shareMetadata(await calculatorShare(params.slug));
+  return shareMetadata(await calculatorShare(params.slug), `/calc/${encodeURIComponent(params.slug)}`);
 }
 
 // The installer's own public link. Marketer links live at ./m/[code] and

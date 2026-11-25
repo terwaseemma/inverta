@@ -2,6 +2,7 @@ import 'server-only';
 
 import { normalizeMemberCode } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
+import { getAppUrl } from '@/lib/app-url';
 import type { ShareCardProps } from './share-card';
 
 // What each shareable link says when it's pasted into a chat. The page title
@@ -133,8 +134,23 @@ export function fallbackShare(): ShareCopy {
  * Page metadata for a share: title, description, and preview text. Next
  * replaces (not merges) the layout's openGraph/twitter objects, so the shared
  * fields are repeated here or the large-image card is lost.
+ *
+ * `path` is the page's own path (/calc/boostsolar); its preview image is the
+ * opengraph-image route beside it. The image is named here, as a full URL on
+ * the host the request came in on (www.inverta.app in production), instead
+ * of leaving Next to build it from the build-time NEXT_PUBLIC_APP_URL: a value
+ * baked in before that variable was set pointed WhatsApp at localhost, and
+ * the apex domain answers with a redirect WhatsApp won't follow for an image.
+ * Naming the image turns off Next's automatic tag for the file.
  */
-export function shareMetadata(copy: ShareCopy) {
+export function shareMetadata(copy: ShareCopy, path: string) {
+  const image = {
+    url: `${getAppUrl()}${path}/opengraph-image`,
+    width: 1200,
+    height: 630,
+    type: 'image/png',
+    alt: copy.title,
+  };
   return {
     title: copy.title,
     description: copy.description,
@@ -144,11 +160,13 @@ export function shareMetadata(copy: ShareCopy) {
       siteName: 'Inverta',
       type: 'website' as const,
       locale: 'en_NG',
+      images: [image],
     },
     twitter: {
       card: 'summary_large_image' as const,
       title: copy.title,
       description: copy.description,
+      images: [image],
     },
   };
 }
