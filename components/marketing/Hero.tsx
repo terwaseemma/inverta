@@ -1,23 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 
 const DEMO_SLUG = process.env.NEXT_PUBLIC_DEFAULT_CALCULATOR_SLUG ?? 'boostsolar';
 
-const HERO_ALT =
-  "The Inverta solar calculator on a phone, showing a customer's appliance list and quote";
-
-// Mobile offset is -50px, not the -110px the other breakpoints scale from: the
-// phone in the PNG sits ~60% across its canvas (the left third is just
-// background glow), so centring the image box would throw the actual subject
-// right of centre. -50px puts the phone on the viewport centre line.
-const HERO_IMG =
-  'pointer-events-none mx-auto h-auto w-full -translate-x-[50px] scale-[1.6] select-none sm:-translate-x-24 md:-translate-x-24 md:scale-125 lg:-translate-x-32 xl:-translate-x-40 xl:scale-150 2xl:-translate-x-56 2xl:scale-[1.65]';
-
-// The hero is the product itself: the calculator on a phone, lit by a warm
-// brand glow (the image's original violet glow was recoloured to the brand
-// orange). The image bleeds on purpose; the section clips it so the page
-// never scrolls sideways.
+// The hero is the product itself: the calculator on a phone in its original
+// glow. The image bleeds on purpose; the section clips it so the page never
+// scrolls sideways.
 export function Hero() {
   return (
     // At least one screen under the 80px header, content centred in it, so the
@@ -56,25 +44,19 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Two cuts of the same picture. The dark one's backdrop is glow
-            emitted over black, which turns to grey smoke on the light canvas;
-            the light one carries that glow as a warm tint instead. The theme
-            class picks one, and the hidden one is never fetched (lazy + display:none). */}
         <div className="relative z-0 sm:-ml-24 md:-ml-16 lg:-ml-28 xl:-ml-40 2xl:-ml-52">
           <Image
-            src="/hero-image-light.png"
-            alt={HERO_ALT}
-            width={1200}
-            height={900}
-            className={cn(HERO_IMG, 'dark:hidden')}
-            priority
-          />
-          <Image
             src="/hero-image.png"
-            alt={HERO_ALT}
+            alt="The Inverta solar calculator on a phone, showing a customer's appliance list and quote"
             width={1200}
             height={900}
-            className={cn(HERO_IMG, 'hidden dark:block')}
+            /* Mobile offset is -50px, not the -110px the other breakpoints
+               scale from: the phone in the PNG sits ~60% across its canvas
+               (the left third is just background glow), so centring the
+               image box would throw the actual subject right of centre.
+               -50px puts the phone on the viewport centre line. */
+            className="pointer-events-none mx-auto h-auto w-full -translate-x-[50px] scale-[1.6] select-none sm:-translate-x-24 md:-translate-x-24 md:scale-125 lg:-translate-x-32 xl:-translate-x-40 xl:scale-150 2xl:-translate-x-56 2xl:scale-[1.65]"
+            priority
           />
         </div>
       </div>

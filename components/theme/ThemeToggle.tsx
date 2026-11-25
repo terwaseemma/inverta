@@ -4,16 +4,23 @@ import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { THEME_CHOICE_EVENT } from './ThemeProvider';
 
 // Renders a sun/moon toggle that flips between light and dark. Renders a
 // same-sized placeholder before mount to avoid a hydration-time flip.
 export function ThemeToggle({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme, forcedTheme, setTheme } = useTheme();
 
   useEffect(() => setMounted(true), []);
 
-  const isDark = resolvedTheme === 'dark';
+  // forcedTheme is the route's default while nobody has picked a theme
+  // (ThemeProvider); resolvedTheme ignores it, so read it first.
+  const isDark = (forcedTheme ?? resolvedTheme) === 'dark';
+  const choose = (theme: 'light' | 'dark') => {
+    setTheme(theme); // saves the choice
+    window.dispatchEvent(new Event(THEME_CHOICE_EVENT)); // and lifts the route default
+  };
   const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
 
   if (!mounted) {
@@ -33,7 +40,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       aria-label={label}
       title={label}
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      onClick={() => choose(isDark ? 'light' : 'dark')}
       className={cn(
         'btn btn-secondary h-10 w-10 shrink-0 px-0 text-muted-foreground hover:text-foreground',
         className,

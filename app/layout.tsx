@@ -14,8 +14,8 @@ const sans = Instrument_Sans({
   display: 'swap',
 });
 
-// Light is the default for everyone; dark only after someone picks it, so the
-// browser chrome follows the light canvas rather than the OS setting.
+// Light is the default outside the homepage (which sets its own); the browser
+// chrome follows the canvas rather than the OS setting.
 export const viewport: Viewport = {
   themeColor: '#edece8',
 };
@@ -46,8 +46,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <PostHogProvider>
           <ThemeProvider
+            // Default per route (dark homepage, light elsewhere) until the
+            // visitor picks one: see components/theme/ThemeProvider.
             attribute="class"
-            defaultTheme="light"
             enableSystem={false}
             disableTransitionOnChange
           >
