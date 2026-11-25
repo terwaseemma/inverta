@@ -2,42 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
-import { NAV_ITEMS } from './nav';
-import { LogoutButton } from './logout-button';
-import { cn } from '@/lib/utils';
+import { BrandIcon, Wordmark } from '@/components/brand/Wordmark';
+import { AccountCard } from './account-card';
+import { NavLinks } from './nav-links';
 
-// Hamburger button + slide-in drawer. Only visible on mobile — the desktop
-// sidebar is unaffected.
-//
-// The drawer is rendered via a React Portal to document.body so it escapes
-// the sticky header's containing block. The header uses `backdrop-blur`,
-// and any element with backdrop-filter/filter/transform creates a
-// containing block for position:fixed descendants — without the portal,
-// `fixed inset-0` would only cover the header (~56px), not the viewport.
+// Menu button + slide-in drawer, below lg only. The drawer is portalled to
+// <body> because the sticky header uses backdrop-blur, and a backdrop-filter
+// makes a containing block for fixed children — without the portal the
+// drawer would be trapped inside the 64px header.
 export function MobileNav({
-  installerName,
+  businessName,
   email,
+  logoUrl,
+  isAdmin,
 }: {
-  installerName: string;
+  businessName: string;
   email: string;
+  logoUrl: string | null;
+  isAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
-  // Close drawer when route changes.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+  // Close on navigation.
+  useEffect(() => setOpen(false), [pathname]);
 
-  // Escape to close + lock body scroll while open.
+  // Escape closes; the page behind stops scrolling while open.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -52,59 +47,27 @@ export function MobileNav({
   }, [open]);
 
   const drawer = (
-    <div
-      className="fixed inset-0 z-[100] lg:hidden"
-      role="dialog"
-      aria-modal="true"
-    >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={() => setOpen(false)}
-      />
-
-      {/* Drawer panel */}
-      <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85%] flex-col border-r border-sidebar-border bg-sidebar shadow-2xl">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-4">
-          <span className="text-sm font-semibold text-sidebar-foreground">Menu</span>
+    <div className="fixed inset-0 z-[100] lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+      <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
+      <aside className="absolute inset-y-0 left-0 flex w-[300px] max-w-[86%] flex-col border-r bg-card p-4">
+        <div className="flex h-12 items-center justify-between px-1">
+          <span className="flex items-center gap-2.5">
+            <BrandIcon size={26} />
+            <Wordmark size="sm" />
+          </span>
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close menu"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="btn btn-ghost h-10 w-10 px-0"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
-
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                  active
-                    ? 'bg-sidebar-accent text-sidebar-foreground'
-                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-                )}
-              >
-                <item.Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="shrink-0 border-t border-sidebar-border p-4">
-          <div className="mb-3 text-xs">
-            <div className="font-medium text-sidebar-foreground">{installerName}</div>
-            <div className="truncate text-sidebar-foreground/60">{email}</div>
-          </div>
-          <LogoutButton />
+        <div className="mt-6 flex-1 overflow-y-auto">
+          <NavLinks isAdmin={isAdmin} />
         </div>
+        <AccountCard businessName={businessName} email={email} logoUrl={logoUrl} />
       </aside>
     </div>
   );
@@ -115,11 +78,11 @@ export function MobileNav({
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open menu"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background/40 text-foreground/80 backdrop-blur transition-colors hover:bg-secondary hover:text-foreground"
+        aria-expanded={open}
+        className="btn btn-secondary h-10 w-10 shrink-0 px-0"
       >
-        <Menu className="h-4 w-4" />
+        <Menu className="h-[18px] w-[18px]" />
       </button>
-
       {mounted && open && createPortal(drawer, document.body)}
     </>
   );

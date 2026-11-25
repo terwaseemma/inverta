@@ -33,78 +33,78 @@ export default async function TeamHomePage() {
   const inProgress = leads.filter((l) => l.status === 'PROPOSAL_SENT').length;
 
   return (
-    <div className="container max-w-3xl py-8">
-      <section className="rounded-xl border bg-card/80 p-6 backdrop-blur">
-        <h1 className="text-xl font-bold tracking-tight">Your quote link</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Share it with anyone thinking about solar. When they request a quote through
-          it, the lead is credited to you and shows up below.
-        </p>
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+      <h1 className="page-title">Hi {member.name.split(' ')[0]}</h1>
+      <p className="page-lead">Share your link — every quote requested through it is credited to you.</p>
 
-        {myLink && calcLink?.isActive ? (
-          <div className="mt-4 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded bg-background/60 px-2 py-1.5 font-mono text-xs">
-                {myLink}
-              </code>
-              <CopyLink url={myLink} />
-            </div>
+      {/* The one job: share the link. It carries the page's accent. */}
+      {myLink && calcLink?.isActive ? (
+        <section className="mt-6 rounded-[24px] bg-primary p-6 text-primary-foreground sm:p-7">
+          <div className="text-[13px] font-medium opacity-80">Your quote link</div>
+          <div className="mt-2 truncate text-[17px] font-semibold">{myLink.replace(/^https?:\/\//, '')}</div>
+          <div className="mt-5 flex gap-2">
             <a
               href={whatsappHref(
                 `Thinking about solar? Get a free instant quote from ${installer.businessName} — see the system you need and the price in 2 minutes: ${myLink}`,
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="signup-gradient-hover glass-button inline-flex h-10 w-full items-center justify-center gap-2 rounded-md px-5 text-sm font-medium text-foreground sm:w-auto"
+              className="btn min-w-0 flex-1 bg-[hsl(24_40%_8%)] text-white hover:bg-[hsl(24_40%_14%)] sm:flex-none"
             >
               <MessageCircle className="h-4 w-4" /> Share on WhatsApp
             </a>
+            <CopyLink url={myLink} className="h-11 shrink-0 border-transparent bg-white/90 px-5 text-[15px] text-[hsl(24_40%_8%)] hover:bg-white" />
           </div>
-        ) : (
-          <p className="mt-4 text-sm text-muted-foreground">
-            {installer.businessName}&apos;s calculator is switched off right now, so
-            there&apos;s no link to share. Check back later.
+        </section>
+      ) : (
+        <section className="card mt-6 p-6">
+          <h2 className="section-title">Nothing to share right now</h2>
+          <p className="mt-1 text-[15px] text-muted-foreground">
+            {installer.businessName}&apos;s calculator is switched off, so your link
+            isn&apos;t live. Check back later.
           </p>
-        )}
-      </section>
+        </section>
+      )}
 
-      <div className="mt-6 grid grid-cols-3 gap-3">
+      <div className="mt-4 grid grid-cols-3 gap-3">
         <Stat label="Leads" value={leads.length} />
         <Stat label="Proposal sent" value={inProgress} />
         <Stat label="Converted" value={converted} />
       </div>
 
-      <section className="mt-6">
-        <h2 className="mb-3 font-semibold">Your leads</h2>
+      <section className="mt-8" aria-labelledby="mine">
+        <h2 id="mine" className="section-title mb-3">
+          Your leads
+        </h2>
         {leads.length === 0 ? (
-          <div className="rounded-xl border border-dashed bg-card/40 p-8 text-center">
-            <Inbox className="mx-auto h-9 w-9 text-muted-foreground" />
-            <p className="mx-auto mt-3 max-w-sm text-sm text-muted-foreground">
+          <div className="card flex flex-col items-center px-6 py-12 text-center">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+              <Inbox className="h-6 w-6" />
+            </span>
+            <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-muted-foreground">
               No leads yet. Every quote requested through your link lands here.
             </p>
           </div>
         ) : (
-          <div className="divide-y rounded-xl border bg-card/80 backdrop-blur">
+          <ul className="card divide-y overflow-hidden">
             {leads.map((lead) => (
-              <Link
-                key={lead.id}
-                href={`/team/leads/${lead.id}`}
-                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/40"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{lead.customerName}</div>
-                  <div className="truncate font-mono text-xs text-muted-foreground">
-                    {systemSummary(parseResultSnapshot(lead.resultSnapshot))}
+              <li key={lead.id}>
+                <Link href={`/team/leads/${lead.id}`} className="row-link flex items-center gap-3 px-5 py-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[15px] font-medium">{lead.customerName}</div>
+                    <div className="truncate text-[13px] text-muted-foreground">
+                      {systemSummary(parseResultSnapshot(lead.resultSnapshot))}
+                    </div>
                   </div>
-                </div>
-                <div className="hidden text-xs text-muted-foreground sm:block">
-                  {lead.createdAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}
-                </div>
-                <StatusBadge status={lead.status} />
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </Link>
+                  <div className="hidden text-[13px] text-muted-foreground sm:block">
+                    {lead.createdAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' })}
+                  </div>
+                  <div className="flex shrink-0 sm:w-[120px]"><StatusBadge status={lead.status} /></div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
     </div>
@@ -113,9 +113,9 @@ export default async function TeamHomePage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border bg-card/80 p-4 text-center backdrop-blur">
-      <div className="font-mono text-2xl font-semibold">{value}</div>
-      <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
+    <div className="card p-4 sm:p-5">
+      <div className="figure text-[28px] leading-none">{value}</div>
+      <div className="mt-2 text-[13px] text-muted-foreground">{label}</div>
     </div>
   );
 }

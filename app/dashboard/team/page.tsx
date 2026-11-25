@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { MessageCircle, UsersRound } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { requireOnboardedInstaller } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAppUrl } from '@/lib/app-url';
 import { whatsappHref } from '@/lib/whatsapp';
 import { cn } from '@/lib/utils';
+import { PageHeader, PageShell } from '@/components/app/page';
 import { CopyLink } from '../copy-button';
 import { InviteForm } from './team-forms';
 import { revokeInviteAction, setMemberActiveAction } from './actions';
@@ -21,12 +22,13 @@ const SEAT_LABEL: Record<SeatState, string> = {
   withdrawn: 'Invite withdrawn',
 };
 
-const SEAT_STYLE: Record<SeatState, string> = {
-  owner: 'bg-primary/15 text-primary border-primary/30',
-  active: 'bg-green-500/15 text-green-500 border-green-500/30',
-  pending: 'bg-accent/15 text-accent border-accent/30',
-  off: 'bg-secondary text-secondary-foreground border-border',
-  withdrawn: 'bg-secondary text-muted-foreground border-border',
+// Dot carries the state, the word stays in ink — same as lead badges.
+const SEAT_DOT: Record<SeatState, string> = {
+  owner: 'bg-foreground',
+  active: 'bg-success',
+  pending: 'bg-primary',
+  off: 'bg-muted-foreground/50',
+  withdrawn: 'bg-muted-foreground/30',
 };
 
 export default async function TeamPage() {
@@ -74,27 +76,25 @@ export default async function TeamPage() {
   const marketers = members.filter((m) => m.role === 'MARKETER');
 
   return (
-    <div className="container max-w-4xl py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Team</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Invite marketers to sell for {installer.businessName}. Each gets their own
-          calculator link — every quote through it is credited to them, and they see
-          only the leads they brought in. Your catalog, prices and settings stay
-          private.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Team"
+        lead={`Invite marketers to sell for ${installer.businessName}. Each gets a calculator link that credits every quote to them, and sees only the leads they bring in — never your catalog, prices or settings.`}
+      />
 
-      <section className="rounded-xl border bg-card/80 p-6 backdrop-blur">
-        <h2 className="mb-4 font-semibold">Invite a marketer</h2>
+      <section className="card p-6" aria-labelledby="invite">
+        <h2 id="invite" className="section-title mb-4">
+          Invite a marketer
+        </h2>
         <InviteForm businessName={installer.businessName} />
       </section>
 
-      <section className="mt-8 rounded-xl border bg-card/80 backdrop-blur">
-        <div className="flex flex-wrap items-center gap-2 border-b px-5 py-3">
-          <UsersRound className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Your team</h2>
-          <span className="text-xs text-muted-foreground">
+      <section className="card mt-4" aria-labelledby="roster">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b px-6 py-5">
+          <h2 id="roster" className="section-title">
+            Your team
+          </h2>
+          <span className="text-[13px] text-muted-foreground">
             {marketers.length === 0
               ? 'no marketers yet'
               : `${marketers.length} marketer${marketers.length === 1 ? '' : 's'}`}
@@ -111,21 +111,17 @@ export default async function TeamPage() {
             const inviteUrl = m.inviteToken ? `${appUrl}/join/${m.inviteToken}` : null;
 
             return (
-              <div key={m.id} className="space-y-3 px-5 py-4">
+              <div key={m.id} className="space-y-3 px-6 py-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-[180px] flex-1">
-                    <div className="flex items-center gap-2 text-sm font-medium">
+                    <div className="flex items-center gap-2 text-[15px] font-medium">
                       {m.name}
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                          SEAT_STYLE[state],
-                        )}
-                      >
+                      <span className="chip bg-card font-medium text-foreground">
+                        <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', SEAT_DOT[state])} />
                         {SEAT_LABEL[state]}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-[13px] text-muted-foreground">
                       {m.email}
                       {m.phone ? ` · ${m.phone}` : ''}
                     </div>
@@ -134,11 +130,11 @@ export default async function TeamPage() {
                   {m.role === 'MARKETER' && (
                     <Link
                       href={`/dashboard/leads?member=${m.id}`}
-                      className="text-xs text-muted-foreground hover:text-foreground"
+                      className="text-[13px] text-muted-foreground hover:text-foreground"
                     >
-                      <span className="font-mono text-foreground">{s.leads}</span> lead
+                      <span className="figure text-foreground">{s.leads}</span> lead
                       {s.leads === 1 ? '' : 's'} ·{' '}
-                      <span className="font-mono text-foreground">{s.converted}</span> converted
+                      <span className="figure text-foreground">{s.converted}</span> converted
                     </Link>
                   )}
 
@@ -172,15 +168,15 @@ export default async function TeamPage() {
           })}
         </div>
       </section>
-    </div>
+    </PageShell>
   );
 }
 
 function LinkRow({ label, url, whatsapp }: { label: string; url: string; whatsapp?: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
+    <div className="flex flex-wrap items-center gap-2 text-[13px]">
       <span className="text-muted-foreground">{label}</span>
-      <code className="min-w-0 flex-1 truncate rounded bg-background/60 px-2 py-1 font-mono">
+      <code className="min-w-0 flex-1 truncate rounded-lg bg-secondary px-2 py-1 font-mono">
         {url}
       </code>
       <CopyLink url={url} />
@@ -189,7 +185,7 @@ function LinkRow({ label, url, whatsapp }: { label: string; url: string; whatsap
           href={whatsappHref(whatsapp)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2.5 py-1 text-xs font-medium hover:bg-muted"
+          className="btn btn-secondary btn-sm"
         >
           <MessageCircle className="h-3 w-3" /> WhatsApp
         </a>
@@ -202,7 +198,7 @@ function SmallButton({ children }: { children: React.ReactNode }) {
   return (
     <button
       type="submit"
-      className="inline-flex h-8 items-center rounded-md border bg-background/40 px-3 text-xs font-medium backdrop-blur transition-colors hover:bg-secondary"
+      className="btn btn-secondary btn-sm"
     >
       {children}
     </button>

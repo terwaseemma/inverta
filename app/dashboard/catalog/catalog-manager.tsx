@@ -89,7 +89,7 @@ export function CatalogManager({ items }: { items: CatalogItemDto[] }) {
         <EmptyState onAddManually={() => setShowAddForm(true)} />
       ) : (
         !catalogComplete && (
-          <div className="rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
+          <div className="rounded-xl p-4 text-sm bg-secondary">
             Customers currently see sizing without prices. To unlock full quotes,
             stock a solar panel plus either an inverter and battery — or an
             all-in-one solar generator.
@@ -97,11 +97,22 @@ export function CatalogManager({ items }: { items: CatalogItemDto[] }) {
         )
       )}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-[15px] text-muted-foreground">
+          {items.length > 0 && (
+            <>
+              <span className="figure text-foreground">{items.length}</span>{' '}
+              {items.length === 1 ? 'product' : 'products'} in your catalog
+            </>
+          )}
+        </p>
         <button
           type="button"
           onClick={() => setShowAddForm((v) => !v)}
-          className="signup-gradient-hover glass-button inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-all duration-200"
+          aria-expanded={showAddForm}
+          // Filled only while it starts something; once the form is open, its
+          // own Save is the main action and this just closes it.
+          className={showAddForm ? 'btn btn-secondary' : 'btn btn-primary'}
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? 'Close' : 'Add product'}
@@ -109,8 +120,8 @@ export function CatalogManager({ items }: { items: CatalogItemDto[] }) {
       </div>
 
       {showAddForm && (
-        <div className="rounded-xl border bg-card/80 p-5 backdrop-blur">
-          <h2 className="mb-4 font-semibold">New product</h2>
+        <div className="card p-5">
+          <h2 className="section-title mb-4">New product</h2>
           <ItemForm onSaved={() => setShowAddForm(false)} />
         </div>
       )}
@@ -118,11 +129,10 @@ export function CatalogManager({ items }: { items: CatalogItemDto[] }) {
       {grouped.map(
         ({ type, items: group }) =>
           group.length > 0 && (
-            <section key={type} className="rounded-xl border bg-card/80 backdrop-blur">
-              <div className="flex items-center gap-2 border-b px-5 py-3">
-                <Package className="h-4 w-4 text-primary" />
-                <h2 className="font-semibold">{TYPE_LABELS[type].plural}</h2>
-                <span className="text-xs text-muted-foreground">({group.length})</span>
+            <section key={type} className="card">
+              <div className="flex items-baseline gap-2 border-b px-6 py-4">
+                <h2 className="section-title">{TYPE_LABELS[type].plural}</h2>
+                <span className="text-[13px] tabular-nums text-muted-foreground">{group.length}</span>
               </div>
               <div className="divide-y">
                 {group.map((item) => (
@@ -141,10 +151,12 @@ function EmptyState({ onAddManually }: { onAddManually: () => void }) {
   const state = rawState ?? ({} as CatalogFormState);
 
   return (
-    <div className="rounded-xl border border-dashed bg-card/40 p-8 text-center">
-      <Package className="mx-auto h-10 w-10 text-muted-foreground" />
-      <h2 className="mt-4 text-lg font-semibold">Your catalog is empty</h2>
-      <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+    <div className="card flex flex-col items-center px-6 py-14 text-center">
+      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+        <Package className="h-6 w-6" />
+      </span>
+      <h2 className="mt-4 text-[17px] font-semibold">Your catalog is empty</h2>
+      <p className="mt-1.5 max-w-md text-[15px] leading-relaxed text-muted-foreground">
         Until you add products, your calculator shows customers their system sizing
         without prices. Start with our template at market-typical prices (edit them
         anytime), or add your own products one by one.
@@ -156,13 +168,13 @@ function EmptyState({ onAddManually }: { onAddManually: () => void }) {
         <button
           type="button"
           onClick={onAddManually}
-          className="inline-flex h-11 items-center rounded-md border bg-background/40 px-5 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary"
+          className="btn btn-secondary"
         >
           Add products manually
         </button>
       </div>
       {state.error && (
-        <p className="mt-3 text-sm text-destructive">{state.error}</p>
+        <p role="alert" className="mt-3 text-[15px] text-destructive">{state.error}</p>
       )}
     </div>
   );
@@ -174,7 +186,7 @@ function StarterButton() {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-11 items-center gap-2 rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary"
     >
       <Sparkles className="h-4 w-4" />
       {pending ? 'Loading starter catalog…' : 'Load starter catalog'}
@@ -187,15 +199,15 @@ function ItemRow({ item }: { item: CatalogItemDto }) {
 
   if (editing) {
     return (
-      <div className="p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">
+      <div className="bg-secondary/60 p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-[15px] font-semibold">
             Edit {item.brand} {item.model}
           </h3>
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="btn btn-ghost btn-sm"
           >
             Cancel
           </button>
@@ -206,26 +218,26 @@ function ItemRow({ item }: { item: CatalogItemDto }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-5 py-3">
+    <div className="flex flex-wrap items-center gap-3 px-6 py-4">
       <div className="min-w-[180px] flex-1">
-        <div className="text-sm font-medium">
+        <div className="text-[15px] font-medium">
           {item.brand} {item.model}
         </div>
-        <div className="text-xs text-muted-foreground">
-          {describeCapacity(item)}
-          {item.chemistry ? ` · ${item.chemistry.toLowerCase()}` : ''}
-          {item.notes ? ` · ${item.notes}` : ''}
+        <div className="text-[13px] text-muted-foreground">
+          {[describeCapacity(item), item.chemistry?.toLowerCase(), item.notes]
+            .filter(Boolean)
+            .join(' · ')}
         </div>
       </div>
-      <div className="font-mono text-sm">{formatKobo(item.priceKobo)}</div>
+      <div className="figure text-[15px]">{formatKobo(item.priceKobo)}</div>
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => setEditing(true)}
           aria-label={`Edit ${item.model}`}
-          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="btn btn-ghost h-10 w-10 px-0"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-4 w-4" />
         </button>
         <form
           action={deleteCatalogItemAction}
@@ -239,9 +251,9 @@ function ItemRow({ item }: { item: CatalogItemDto }) {
           <button
             type="submit"
             aria-label={`Delete ${item.model}`}
-            className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+            className="btn btn-ghost h-10 w-10 px-0 hover:text-destructive"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </form>
       </div>
@@ -340,7 +352,7 @@ function ItemForm({
               <option value="24">24V</option>
               <option value="48">48V</option>
             </select>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[13px] text-muted-foreground">
               Inverters only pair with same-voltage batteries in quotes.
             </span>
           </label>
@@ -392,7 +404,7 @@ function ItemForm({
                 <option value="GEL">Gel</option>
               </select>
               {err.chemistry && (
-                <span className="text-xs text-destructive">{err.chemistry}</span>
+                <span className="text-[13px] text-destructive">{err.chemistry}</span>
               )}
             </label>
           </>
@@ -416,7 +428,7 @@ function ItemForm({
       </div>
 
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -432,7 +444,7 @@ function SaveButton({ isEdit }: { isEdit: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-10 items-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary"
     >
       {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Add to catalog'}
     </button>
@@ -470,7 +482,7 @@ function FormField({
         placeholder={placeholder}
         className={cn('input', error && 'border-destructive')}
       />
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
   );
 }

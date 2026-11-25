@@ -69,7 +69,7 @@ export function SignupForm() {
       />
 
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -85,7 +85,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-11 w-full items-center justify-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary w-full"
     >
       {pending ? 'Creating account…' : 'Create account'}
     </button>
@@ -135,7 +135,7 @@ function Field({
           className={cn('input', error && 'border-destructive')}
         />
       )}
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
   );
 }

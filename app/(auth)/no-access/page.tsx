@@ -16,8 +16,8 @@ export default function NoAccessPage() {
         <ShieldOff className="h-7 w-7" />
       </div>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">No access</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <h1 className="text-[26px] font-semibold tracking-[-0.02em]">No access</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
           This login isn&apos;t connected to an active account. If you were part of a
           solar company&apos;s team, the owner may have removed your access — ask them
           to restore it.

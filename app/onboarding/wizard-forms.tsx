@@ -42,7 +42,7 @@ export function ProfileStepForm({
         error={err.address}
       />
       <label className="block space-y-1.5">
-        <span className="text-sm font-medium">Tagline / short bio</span>
+        <span className="text-[15px] font-medium">Tagline / short bio</span>
         <textarea
           name="bio"
           defaultValue={defaults.bio}
@@ -50,11 +50,11 @@ export function ProfileStepForm({
           className={cn('input min-h-[80px] py-2', err.bio && 'border-destructive')}
           placeholder="One sentence customers will see on your calculator."
         />
-        {err.bio && <span className="text-xs text-destructive">{err.bio}</span>}
+        {err.bio && <span className="text-[13px] text-destructive">{err.bio}</span>}
       </label>
 
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -100,7 +100,7 @@ export function PaymentStepForm({
       </div>
 
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -126,31 +126,31 @@ export function FinishForm({
   return (
     <form action={formAction} className="space-y-4">
       <label className="block space-y-1.5">
-        <span className="text-sm font-medium">Your link handle</span>
+        <span className="text-[15px] font-medium">Your link handle</span>
         <input
           name="slug"
           value={slug}
           onChange={(e) => setSlug(e.target.value.toLowerCase())}
           className={cn('input font-mono', err.slug && 'border-destructive')}
         />
-        {err.slug && <span className="text-xs text-destructive">{err.slug}</span>}
+        {err.slug && <span className="text-[13px] text-destructive">{err.slug}</span>}
       </label>
 
-      <div className="rounded-md border border-primary/30 bg-primary/5 p-4">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+      <div className="rounded-xl p-4 bg-secondary">
+        <div className="label">
           Your calculator will live at
         </div>
-        <div className="mt-1 break-all font-mono text-sm orange-text">
+        <div className="mt-1 break-all text-[17px] font-semibold">
           {appUrl}/calc/{preview}
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-2 text-[13px] text-muted-foreground">
           Share this anywhere — WhatsApp status, Instagram bio, flyers. Every
           submission becomes a lead in your dashboard.
         </p>
       </div>
 
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -171,7 +171,7 @@ function WizardFooter({
     <div className="flex items-center justify-between pt-2">
       <Link
         href={skipHref}
-        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="btn btn-ghost"
       >
         Skip for now
       </Link>
@@ -186,7 +186,7 @@ function ContinueButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-11 items-center rounded-md px-6 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary"
     >
       {pending ? 'Saving…' : label}
     </button>
@@ -199,7 +199,7 @@ function FinishButton() {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-11 w-full items-center justify-center gap-2 rounded-md text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary w-full"
     >
       <Sparkles className="h-4 w-4" />
       {pending ? 'Launching…' : 'Launch my calculator'}
@@ -222,14 +222,14 @@ function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-[15px] font-medium">{label}</span>
       <input
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
         className={cn('input', error && 'border-destructive')}
       />
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
   );
 }

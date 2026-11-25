@@ -26,7 +26,7 @@ export function SignOutButton({ className }: { className?: string }) {
       onClick={signOut}
       disabled={pending}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-md border bg-background/40 px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50',
+        'btn btn-secondary',
         className,
       )}
     >

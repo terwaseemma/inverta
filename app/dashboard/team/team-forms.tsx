@@ -35,12 +35,12 @@ export function InviteForm({ businessName }: { businessName: string }) {
         <Field label="Phone (optional)" name="phone" placeholder="+234…" error={err.phone} />
         <div className="flex items-center gap-3 sm:col-span-3">
           <InviteButton />
-          {state.error && <span className="text-xs text-destructive">{state.error}</span>}
+          {state.error && <span className="text-[13px] text-destructive">{state.error}</span>}
         </div>
       </form>
 
       {state.success && state.inviteUrl && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
+        <div className="rounded-xl p-4 text-sm bg-secondary">
           <p className="font-medium">
             {state.invitedName} is invited.
           </p>
@@ -49,7 +49,7 @@ export function InviteForm({ businessName }: { businessName: string }) {
             it&apos;s how most invites actually arrive.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 truncate rounded bg-background/60 px-2 py-1 font-mono text-xs">
+            <code className="min-w-0 flex-1 truncate rounded-lg bg-secondary px-2 py-1 font-mono text-[13px]">
               {state.inviteUrl}
             </code>
             <CopyLink url={state.inviteUrl} />
@@ -59,7 +59,7 @@ export function InviteForm({ businessName }: { businessName: string }) {
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2.5 py-1 text-xs font-medium hover:bg-muted"
+              className="btn btn-secondary btn-sm"
             >
               <MessageCircle className="h-3 w-3" /> WhatsApp
             </a>
@@ -76,7 +76,7 @@ function InviteButton() {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-10 items-center gap-2 rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary"
     >
       <UserPlus className="h-4 w-4" />
       {pending ? 'Inviting…' : 'Send invite'}
@@ -106,7 +106,7 @@ function Field({
         placeholder={placeholder}
         className={cn('input', error && 'border-destructive')}
       />
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
   );
 }

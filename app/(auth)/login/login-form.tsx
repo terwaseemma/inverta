@@ -22,7 +22,7 @@ export function LoginForm({ next }: { next?: string }) {
           autoComplete="email"
         />
         {state.fieldErrors?.email && (
-          <span className="text-xs text-destructive">{state.fieldErrors.email}</span>
+          <span className="text-[13px] text-destructive">{state.fieldErrors.email}</span>
         )}
       </label>
       <label className="block space-y-1.5">
@@ -30,7 +30,7 @@ export function LoginForm({ next }: { next?: string }) {
           <span className="text-sm font-medium">Password</span>
           <Link
             href="/forgot-password"
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
           >
             Forgot password?
           </Link>
@@ -42,11 +42,11 @@ export function LoginForm({ next }: { next?: string }) {
           autoComplete="current-password"
         />
         {state.fieldErrors?.password && (
-          <span className="text-xs text-destructive">{state.fieldErrors.password}</span>
+          <span className="text-[13px] text-destructive">{state.fieldErrors.password}</span>
         )}
       </label>
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -61,7 +61,7 @@ function Submit() {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-11 w-full items-center justify-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary w-full"
     >
       {pending ? 'Signing in…' : 'Sign in'}
     </button>

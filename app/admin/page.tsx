@@ -39,10 +39,10 @@ export default async function AdminOverviewPage() {
   ]);
 
   return (
-    <div className="container max-w-5xl py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Platform overview</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="page-title">Platform overview</h1>
+        <p className="page-lead">
           Everything happening across Inverta.
         </p>
       </div>
@@ -58,39 +58,32 @@ export default async function AdminOverviewPage() {
         />
       </div>
 
-      <section className="mt-8 rounded-xl border bg-card/80 backdrop-blur">
-        <div className="border-b px-5 py-3">
-          <h2 className="font-semibold">Recent signups</h2>
+      <section className="card mt-4 overflow-hidden">
+        <div className="flex items-center justify-between border-b px-6 py-5">
+          <h2 className="section-title">Recent signups</h2>
+          <Link href="/admin/installers" className="link text-sm font-medium">
+            See all
+          </Link>
         </div>
         {recentSignups.length === 0 ? (
-          <p className="p-5 text-sm text-muted-foreground">No installers yet.</p>
+          <p className="p-6 text-[15px] text-muted-foreground">No installers yet.</p>
         ) : (
           <div className="divide-y">
             {recentSignups.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-sm">
+              <div key={s.id} className="flex flex-wrap items-center gap-3 px-6 py-4 text-[15px]">
                 <div className="min-w-[160px] flex-1 font-medium">{s.businessName}</div>
                 <div className="text-muted-foreground">{s.region}</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[13px] text-muted-foreground">
                   {s.createdAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}
                 </div>
-                <span
-                  className={
-                    s.onboardedAt
-                      ? 'rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-xs text-green-500'
-                      : 'rounded-full border px-2 py-0.5 text-xs text-muted-foreground'
-                  }
-                >
+                <span className="chip bg-card text-foreground">
+                  <span aria-hidden className={s.onboardedAt ? 'h-1.5 w-1.5 rounded-full bg-success' : 'h-1.5 w-1.5 rounded-full bg-muted-foreground/50'} />
                   {s.onboardedAt ? 'Onboarded' : 'Incomplete'}
                 </span>
               </div>
             ))}
           </div>
         )}
-        <div className="border-t px-5 py-3">
-          <Link href="/admin/installers" className="text-sm orange-text hover:underline">
-            View all installers →
-          </Link>
-        </div>
       </section>
     </div>
   );
@@ -106,10 +99,12 @@ function Stat({
   sub?: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card/80 p-5 backdrop-blur">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-1 text-3xl font-semibold tracking-tight">{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
+    <div className="card flex min-h-[132px] flex-col justify-between p-6">
+      <div className="label">{label}</div>
+      <div>
+        <div className="figure mt-4 text-[32px] leading-none">{value}</div>
+        {sub && <div className="mt-2 text-[13px] text-muted-foreground">{sub}</div>}
+      </div>
     </div>
   );
 }

@@ -75,31 +75,22 @@ export function parseResultSnapshot(json: unknown): LeadResultSnapshot {
   return (json ?? {}) as LeadResultSnapshot;
 }
 
+// One decimal at most: 4.019 -> 4, 1.28 -> 1.3.
+const n1 = (v: number) => String(Math.round(v * 10) / 10);
+
+// The stocked figure when there is one, otherwise the requirement with a "~".
+const part = (stocked: number | null | undefined, needed: number | null | undefined, unit: string) =>
+  stocked ? `${n1(stocked)}${unit}` : needed ? `~${n1(needed)}${unit}` : `?${unit}`;
+
 /** Compact one-line system summary, e.g. "3.5kVA · 7kWh · 2.7kWp" */
 export function systemSummary(result: LeadResultSnapshot): string {
+  const pan = part(result.panels?.totalKwp, result.requirements?.panelArrayKwp, 'kWp');
   if (result.generator?.capacityKva) {
-    const pan = result.panels?.totalKwp
-      ? `${result.panels.totalKwp}kWp`
-      : result.requirements?.panelArrayKwp
-        ? `~${result.requirements.panelArrayKwp}kWp`
-        : '?kWp';
-    return `${result.generator.capacityKva}kVA/${result.generator.storageKwh ?? '?'}kWh gen · ${pan}`;
+    const kwh = part(result.generator.storageKwh, null, 'kWh');
+    return `${n1(result.generator.capacityKva)}kVA all-in-one · ${kwh} · ${pan}`;
   }
-  const inv = result.inverter?.capacityKva
-    ? `${result.inverter.capacityKva}kVA`
-    : result.requirements?.inverterKva
-      ? `~${result.requirements.inverterKva}kVA`
-      : '?kVA';
-  const bat = result.batteries?.totalCapacityKwh
-    ? `${result.batteries.totalCapacityKwh}kWh`
-    : result.requirements?.batteryBankKwh
-      ? `~${result.requirements.batteryBankKwh}kWh`
-      : '?kWh';
-  const pan = result.panels?.totalKwp
-    ? `${result.panels.totalKwp}kWp`
-    : result.requirements?.panelArrayKwp
-      ? `~${result.requirements.panelArrayKwp}kWp`
-      : '?kWp';
+  const inv = part(result.inverter?.capacityKva, result.requirements?.inverterKva, 'kVA');
+  const bat = part(result.batteries?.totalCapacityKwh, result.requirements?.batteryBankKwh, 'kWh');
   return `${inv} · ${bat} · ${pan}`;
 }
 

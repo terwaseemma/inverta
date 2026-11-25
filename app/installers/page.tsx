@@ -41,12 +41,12 @@ export default async function InstallersPage({
   });
 
   return (
-    <div className="hero-gradient flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col">
       <Header />
 
       <main className="container max-w-5xl flex-1 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+          <h1 className="text-[34px] font-semibold leading-tight tracking-[-0.025em] md:text-[44px]">
             Find a solar installer <span className="orange-text italic">near you.</span>
           </h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">
@@ -68,7 +68,7 @@ export default async function InstallersPage({
           </select>
           <button
             type="submit"
-            className="inline-flex h-10 items-center rounded-md border bg-background/40 px-4 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary"
+            className="btn btn-secondary"
           >
             Filter
           </button>
@@ -83,9 +83,9 @@ export default async function InstallersPage({
         </form>
 
         {installers.length === 0 ? (
-          <div className="rounded-xl border border-dashed bg-card/40 p-10 text-center">
+          <div className="card border-dashed p-10 text-center">
             <MapPin className="mx-auto h-10 w-10 text-muted-foreground" />
-            <h2 className="mt-4 text-lg font-semibold">
+            <h2 className="mt-4 text-[17px] font-semibold">
               No installers in {state ?? 'this area'} yet
             </h2>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
@@ -93,7 +93,7 @@ export default async function InstallersPage({
             </p>
             <Link
               href="/signup"
-              className="signup-gradient-hover glass-button mt-5 inline-flex h-10 items-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200"
+              className="btn btn-primary mt-5"
             >
               Be the first in {state ?? 'your state'}
             </Link>
@@ -103,7 +103,7 @@ export default async function InstallersPage({
             {installers.map((inst) => (
               <div
                 key={inst.id}
-                className="flex flex-col rounded-xl border bg-card/80 p-5 backdrop-blur"
+                className="card flex flex-col p-5"
               >
                 <div className="flex items-center gap-3">
                   {inst.logoUrl ? (
@@ -114,13 +114,13 @@ export default async function InstallersPage({
                       className="h-11 w-11 rounded-md border object-contain"
                     />
                   ) : (
-                    <div className="grid h-11 w-11 place-items-center rounded-md bg-primary/15 text-lg font-semibold text-primary">
+                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-lg font-semibold text-primary-foreground">
                       {inst.businessName[0]}
                     </div>
                   )}
                   <div className="min-w-0">
                     <h3 className="truncate font-semibold">{inst.businessName}</h3>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
                       <MapPin className="h-3 w-3" /> {inst.region}
                     </div>
                   </div>
@@ -134,14 +134,14 @@ export default async function InstallersPage({
                   {inst.calculatorLink?.isActive && (
                     <Link
                       href={`/calc/${inst.calculatorLink.slug}`}
-                      className="signup-gradient-hover glass-button inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md text-xs font-medium text-foreground transition-all duration-200"
+                      className="btn btn-primary btn-sm flex-1"
                     >
                       <Zap className="h-3.5 w-3.5" /> Get a quote
                     </Link>
                   )}
                   <Link
                     href={`/store/${inst.slug}`}
-                    className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md border bg-background/40 text-xs font-medium backdrop-blur transition-colors hover:bg-secondary"
+                    className="btn btn-secondary btn-sm flex-1"
                   >
                     <ShoppingBag className="h-3.5 w-3.5" /> Store
                   </Link>

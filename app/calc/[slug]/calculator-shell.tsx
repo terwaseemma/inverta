@@ -47,39 +47,42 @@ export async function CalculatorShell({
       })
     : null;
 
+  const initial = link.installer.businessName.trim()[0]?.toUpperCase() ?? 'S';
+
   return (
-    <main className="min-h-screen hero-gradient">
-      <header className="border-b border-border/40 bg-background/40 backdrop-blur">
-        <div className="container flex h-16 items-center gap-3">
+    <main className="min-h-screen">
+      <header className="border-b bg-card">
+        <div className="mx-auto flex h-16 w-full max-w-3xl items-center gap-3 px-4 sm:px-6">
           {link.installer.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={link.installer.logoUrl}
               alt={link.installer.businessName}
-              className="h-9 w-9 rounded object-contain"
+              className="h-10 w-10 rounded-xl border bg-card object-contain p-1"
             />
           ) : (
-            <div className="grid h-9 w-9 place-items-center rounded bg-primary text-primary-foreground text-sm font-semibold">
-              {link.installer.businessName[0]}
-            </div>
-          )}
-          <div className="flex-1">
-            <div className="text-sm font-medium">{link.installer.businessName}</div>
-            <div className="text-xs text-muted-foreground">
-              {marketer
-                ? `Solar sizing calculator · with ${marketer.name.split(' ')[0]}`
-                : 'Solar sizing calculator'}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="hidden items-center gap-2 text-xs text-muted-foreground hover:text-foreground sm:inline-flex"
+            <span
+              aria-hidden
+              className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-base font-semibold text-primary-foreground"
             >
-              Powered by <Wordmark size="sm" />
-            </Link>
-            <ThemeToggle />
+              {initial}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[15px] font-semibold">{link.installer.businessName}</div>
+            <div className="truncate text-[13px] text-muted-foreground">
+              {marketer
+                ? `Solar quote · with ${marketer.name.split(' ')[0]}`
+                : 'Free solar quote in 2 minutes'}
+            </div>
           </div>
+          <Link
+            href="/"
+            className="hidden items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+          >
+            Powered by <Wordmark size="sm" />
+          </Link>
+          <ThemeToggle />
         </div>
       </header>
 

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { Download } from 'lucide-react';
+import { Download, Globe, Mail, MessageCircle, Phone } from 'lucide-react';
 import { formatKobo } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { notifyProposalViewed } from '@/lib/notifications';
@@ -54,137 +54,167 @@ export default async function PublicProposalPage({
   }
 
   const installer = proposal.installer;
+  const firstName = proposal.lead.customerName.split(' ')[0] ?? '';
+  const waNumber = installer.phone.replace(/[^\d]/g, '');
+  const validUntil = proposal.validUntil?.toLocaleDateString('en-NG', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Africa/Lagos',
+  });
 
   return (
-    <main className="min-h-screen hero-gradient">
-      <header className="border-b border-border/40 bg-background/40 backdrop-blur">
-        <div className="container flex h-16 items-center gap-3">
+    <main className="min-h-screen">
+      <header className="border-b bg-card">
+        <div className="mx-auto flex h-16 w-full max-w-3xl items-center gap-3 px-4 sm:px-6">
           {installer.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={installer.logoUrl}
               alt={installer.businessName}
-              className="h-9 w-9 rounded object-contain"
+              className="h-10 w-10 rounded-xl border bg-card object-contain p-1"
             />
           ) : (
-            <div className="grid h-9 w-9 place-items-center rounded bg-primary text-sm font-semibold text-primary-foreground">
-              {installer.businessName[0]}
-            </div>
+            <span
+              aria-hidden
+              className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-base font-semibold text-primary-foreground"
+            >
+              {installer.businessName.trim()[0]?.toUpperCase()}
+            </span>
           )}
-          <div>
-            <div className="text-sm font-medium">{installer.businessName}</div>
-            <div className="text-xs text-muted-foreground">Solar proposal</div>
+          <div className="min-w-0">
+            <div className="truncate text-[15px] font-semibold">{installer.businessName}</div>
+            <div className="text-[13px] text-muted-foreground">Solar proposal</div>
           </div>
         </div>
       </header>
 
-      <div className="container max-w-2xl py-10">
-        <div className="rounded-xl border bg-card/80 p-6 backdrop-blur">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Hi {proposal.lead.customerName.split(' ')[0]},
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            here&apos;s your solar system proposal from {installer.businessName}
-            {proposal.validUntil &&
-              ` — valid until ${proposal.validUntil.toLocaleDateString('en-NG', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}`}
-            .
-          </p>
-
-          {proposal.customMessage && (
-            <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
-              {proposal.customMessage}
-            </div>
-          )}
-
-          <table className="mt-6 w-full text-sm">
-            <thead className="text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="py-2 font-medium">Item</th>
-                <th className="py-2 text-right font-medium">Qty</th>
-                <th className="py-2 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {proposal.items.map((item) => (
-                <tr key={item.id}>
-                  <td className="py-2">
-                    {item.name}
-                    {item.description && (
-                      <div className="text-xs text-muted-foreground">
-                        {item.description}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-2 text-right font-mono">{item.quantity}</td>
-                  <td className="py-2 text-right font-mono">
-                    {formatKobo(item.quantity * item.unitPriceKobo)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="mt-4 flex items-center justify-between border-t pt-4">
-            <span className="font-semibold">Total</span>
-            <span className="font-mono text-xl font-semibold orange-text">
-              {formatKobo(proposal.totalKobo)}
-            </span>
+      <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+        {/* The answer first. */}
+        <section className="rounded-[24px] bg-primary p-6 text-primary-foreground sm:p-8">
+          <div className="text-[15px] font-medium opacity-80">
+            Hi {firstName}, your proposal from {installer.businessName}
           </div>
+          <div className="figure mt-3 text-[40px] leading-none sm:text-[52px]">
+            {formatKobo(proposal.totalKobo)}
+          </div>
+          {validUntil && <div className="mt-3 text-[15px] opacity-80">Valid until {validUntil}</div>}
+        </section>
 
-          {installer.bankAccountNumber && (
-            <div className="mt-6 rounded-md border border-primary/30 bg-primary/5 p-4">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                Payment details
+        {proposal.customMessage && (
+          <section className="card mt-4 p-6">
+            <p className="whitespace-pre-line text-[15px] leading-relaxed">{proposal.customMessage}</p>
+          </section>
+        )}
+
+        <section className="card mt-4" aria-labelledby="items">
+          <h2 id="items" className="section-title px-6 pt-6">
+            What&apos;s included
+          </h2>
+          <ul className="mt-2 divide-y">
+            {proposal.items.map((item) => (
+              <li key={item.id} className="flex items-start justify-between gap-4 px-6 py-3.5">
+                <div className="min-w-0">
+                  <div className="text-[15px]">{item.name}</div>
+                  {(item.description || item.quantity > 1) && (
+                    <div className="text-[13px] text-muted-foreground">
+                      {item.quantity > 1 && (
+                        <span className="tabular-nums">
+                          {item.quantity} × {formatKobo(item.unitPriceKobo)}
+                        </span>
+                      )}
+                      {item.quantity > 1 && item.description && ' · '}
+                      {item.description}
+                    </div>
+                  )}
+                </div>
+                <div className="figure shrink-0 text-[15px]">
+                  {formatKobo(item.quantity * item.unitPriceKobo)}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="flex items-baseline justify-between gap-4 border-t px-6 py-5">
+            <span className="text-[15px] font-semibold">Total</span>
+            <span className="figure text-[24px]">{formatKobo(proposal.totalKobo)}</span>
+          </div>
+        </section>
+
+        {installer.bankAccountNumber && (
+          <section className="card mt-4 p-6" aria-labelledby="pay">
+            <h2 id="pay" className="section-title">
+              How to pay
+            </h2>
+            <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+              <div>
+                <dt className="label">Account number</dt>
+                <dd className="figure mt-1 text-[20px]">{installer.bankAccountNumber}</dd>
               </div>
-              <div className="mt-1 font-mono text-sm">
-                {installer.bankAccountNumber}
-                {installer.bankName && ` · ${installer.bankName}`}
-              </div>
-              {installer.bankAccountName && (
-                <div className="text-sm text-muted-foreground">
-                  {installer.bankAccountName}
+              {installer.bankName && (
+                <div>
+                  <dt className="label">Bank</dt>
+                  <dd className="mt-1 text-[15px] font-medium">{installer.bankName}</dd>
                 </div>
               )}
-            </div>
-          )}
+              {installer.bankAccountName && (
+                <div>
+                  <dt className="label">Account name</dt>
+                  <dd className="mt-1 text-[15px] font-medium">{installer.bankAccountName}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
+        )}
 
-          <div className="mt-6 flex flex-wrap gap-3">
+        <section className="card mt-4 p-6 sm:p-8" aria-labelledby="ahead">
+          <h2 id="ahead" className="text-[20px] font-semibold tracking-[-0.01em]">
+            Ready to go ahead?
+          </h2>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
+            Message {installer.businessName} to book your installation, or ask anything
+            about the system first.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {waNumber && (
+              <a
+                href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
+                  `Hi ${installer.businessName}, I've read my solar proposal (${formatKobo(proposal.totalKobo)}) and I'd like to go ahead.`,
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+              >
+                <MessageCircle className="h-4 w-4" /> Go ahead on WhatsApp
+              </a>
+            )}
             <a
               href={`/api/proposals/${proposal.id}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
-              className="signup-gradient-hover glass-button inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium text-foreground transition-all duration-200"
+              className="btn btn-secondary"
             >
               <Download className="h-4 w-4" /> Download PDF
             </a>
           </div>
-        </div>
-
-        <div className="mt-6 rounded-xl border bg-card/60 p-5 text-sm backdrop-blur">
-          <div className="font-medium">Questions? Talk to {installer.businessName}:</div>
-          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
-            <a href={`tel:${installer.phone}`} className="hover:text-foreground">
-              📞 {installer.phone}
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-[15px]">
+            <a href={`tel:${installer.phone}`} className="link inline-flex items-center gap-1.5">
+              <Phone className="h-4 w-4" /> {installer.phone}
             </a>
-            <a href={`mailto:${installer.email}`} className="hover:text-foreground">
-              ✉️ {installer.email}
+            <a href={`mailto:${installer.email}`} className="link inline-flex items-center gap-1.5">
+              <Mail className="h-4 w-4" /> {installer.email}
             </a>
             {installer.websiteUrl && (
               <a
                 href={installer.websiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-foreground"
+                className="link inline-flex items-center gap-1.5"
               >
-                🌐 Website
+                <Globe className="h-4 w-4" /> Website
               </a>
             )}
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );

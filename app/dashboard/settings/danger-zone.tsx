@@ -23,7 +23,7 @@ export function DangerZone({ businessName }: { businessName: string }) {
         <button
           type="button"
           onClick={() => setArmed(true)}
-          className="inline-flex h-10 items-center rounded-md border border-destructive/40 bg-destructive/10 px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
+          className="btn btn-danger"
         >
           Delete account…
         </button>
@@ -33,7 +33,7 @@ export function DangerZone({ businessName }: { businessName: string }) {
 
   return (
     <form action={formAction} className="space-y-4">
-      <div className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4">
+      <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
         <div className="text-sm">
           <p className="font-medium text-destructive">This cannot be undone.</p>
@@ -58,12 +58,12 @@ export function DangerZone({ businessName }: { businessName: string }) {
           )}
         />
         {state.fieldErrors?.confirm && (
-          <span className="text-xs text-destructive">{state.fieldErrors.confirm}</span>
+          <span className="text-[13px] text-destructive">{state.fieldErrors.confirm}</span>
         )}
       </label>
 
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -88,7 +88,7 @@ function DeleteButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-10 items-center rounded-md bg-destructive px-5 text-sm font-medium text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+      className="btn bg-destructive text-destructive-foreground hover:bg-destructive/90"
     >
       {pending ? 'Deleting…' : 'Permanently delete account'}
     </button>

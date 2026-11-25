@@ -51,10 +51,10 @@ export default async function CatalogPage() {
     }));
 
   return (
-    <div className="container max-w-4xl py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Catalog</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="mx-auto w-full max-w-[1040px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="page-title">Catalog</h1>
+        <p className="page-lead">
           The products your calculator quotes from. Customers only see prices once
           you stock at least one inverter, battery, and panel.
         </p>

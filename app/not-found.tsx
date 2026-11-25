@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div className="hero-gradient flex min-h-screen items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center px-4">
       <div className="text-center">
         <h1 className="mb-4 text-6xl font-bold">
           4<span className="orange-text">0</span>4
@@ -12,7 +12,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="signup-gradient-hover glass-button inline-flex h-10 items-center rounded-md border-border px-4 text-sm font-medium text-foreground transition-all duration-200"
+          className="btn btn-primary"
         >
           Return home
         </Link>

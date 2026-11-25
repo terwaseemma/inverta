@@ -6,7 +6,7 @@ import { Footer } from '@/components/marketing/Footer';
 // The design is unchanged; only the underlying framework moved to Next.js.
 export default function LandingPage() {
   return (
-    <div className="hero-gradient flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col">
       <Header />
       <Hero />
       <Footer />

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { Download, PackageSearch } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { applyMargin, formatKobo } from '@inverta/shared';
 import { importMasterItemAction, type CatalogFormState } from './actions';
 
@@ -24,7 +24,7 @@ function ImportButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-background/40 px-3 text-xs font-medium backdrop-blur transition-colors hover:bg-secondary disabled:opacity-50"
+      className="btn btn-secondary btn-sm"
     >
       <Download className="h-3 w-3" /> {pending ? 'Adding…' : 'Add to my catalog'}
     </button>
@@ -53,7 +53,7 @@ function ImportRow({ item }: { item: ImportableItemDto }) {
   const fieldError = err.marginPercent ?? err.marginNaira;
 
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3 px-5 py-4">
+    <form action={formAction} className="flex flex-wrap items-end gap-3 px-6 py-5">
       <input type="hidden" name="id" value={item.id} />
       <input type="hidden" name="marginMode" value={mode} />
       <input
@@ -63,18 +63,18 @@ function ImportRow({ item }: { item: ImportableItemDto }) {
       />
 
       <div className="min-w-[170px] flex-1">
-        <div className="text-sm font-medium">
+        <div className="text-[15px] font-medium">
           {item.brand} {item.model}
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-[13px] text-muted-foreground">
           {item.type.charAt(0) + item.type.slice(1).toLowerCase()} · trade{' '}
-          <span className="font-mono">{formatKobo(item.priceKobo)}</span>
+          <span className="figure">{formatKobo(item.priceKobo)}</span>
           {item.note ? ` · ${item.note}` : ''}
         </div>
       </div>
 
       <label className="space-y-1.5">
-        <span className="block text-xs font-medium text-muted-foreground">
+        <span className="block text-[13px] font-medium text-muted-foreground">
           Your margin
         </span>
         <div className="flex">
@@ -100,10 +100,10 @@ function ImportRow({ item }: { item: ImportableItemDto }) {
       </label>
 
       <div className="min-w-[110px] space-y-1.5">
-        <span className="block text-xs font-medium text-muted-foreground">
+        <span className="block text-[13px] font-medium text-muted-foreground">
           You sell at
         </span>
-        <div className="font-mono text-sm leading-9">
+        <div className="figure text-sm leading-9">
           {yourPrice == null ? '—' : formatKobo(yourPrice)}
         </div>
       </div>
@@ -111,7 +111,7 @@ function ImportRow({ item }: { item: ImportableItemDto }) {
       <ImportButton />
 
       {(fieldError || state.error) && (
-        <p className="w-full text-xs text-destructive">{fieldError ?? state.error}</p>
+        <p className="w-full text-[13px] text-destructive">{fieldError ?? state.error}</p>
       )}
     </form>
   );
@@ -121,14 +121,13 @@ export function PlatformCatalog({ items }: { items: ImportableItemDto[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-8 rounded-xl border bg-card/80 backdrop-blur">
-      <div className="flex flex-wrap items-center gap-2 border-b px-5 py-3">
-        <PackageSearch className="h-4 w-4 text-primary" />
-        <h2 className="font-semibold">Platform catalog</h2>
-        <span className="text-xs text-muted-foreground">
-          prices shown are wholesale — set your margin before adding, since the
-          price you save is what customers are quoted
-        </span>
+    <section className="card mt-4">
+      <div className="border-b px-6 py-5">
+        <h2 className="section-title">Add from the platform catalog</h2>
+        <p className="mt-1 text-[15px] text-muted-foreground">
+          Prices here are wholesale. Set your margin on each before adding — the price
+          you save is exactly what customers are quoted.
+        </p>
       </div>
       <div className="divide-y">
         {items.map((item) => (

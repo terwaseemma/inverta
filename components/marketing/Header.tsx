@@ -1,98 +1,90 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { BrandIcon, Wordmark } from '@/components/brand/Wordmark';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
-// Marketing site header — ported from the Vite marketing site verbatim
-// EXCEPT: Sign up now links to /signup on this app, Sign in was added and
-// links to /login. The About/Installers/Packages links keep their existing
-// bit.ly destinations until real pages exist.
+const NAV = [
+  { href: '/about', label: 'About' },
+  { href: '/installers', label: 'Installers' },
+];
+
 export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  useEffect(() => setOpen(false), [pathname]);
 
   return (
-    <header className="relative z-20 w-full px-6 py-6 lg:px-8">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between">
-        <Link href="/" className="flex items-center">
-          <Image src="/icon.png" alt="Inverta" width={32} height={32} className="h-8 w-auto" priority />
+    <header className="relative z-20 w-full">
+      <nav
+        aria-label="Main"
+        className="mx-auto flex h-20 w-full max-w-[1240px] items-center justify-between px-4 sm:px-6 lg:px-8"
+      >
+        <Link href="/" className="flex items-center gap-2.5" aria-label="Inverta home">
+          <BrandIcon size={30} />
+          <Wordmark size="sm" className="hidden sm:inline-flex" />
         </Link>
 
-        <div className="hidden items-center space-x-8 md:flex">
-          <Link href="/about" className="text-foreground transition-colors hover:text-orange">
-            About
-          </Link>
-          <Link
-            href="/installers"
-            className="text-foreground transition-colors hover:text-orange"
-          >
-            Installers
-          </Link>
+        <div className="hidden items-center gap-8 md:flex">
+          {NAV.map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              aria-current={pathname === n.href ? 'page' : undefined}
+              className="text-[15px] text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground"
+            >
+              {n.label}
+            </Link>
+          ))}
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
-          <Link
-            href="/login"
-            className="text-sm text-foreground/80 transition-colors hover:text-foreground"
-          >
+          <Link href="/login" className="btn btn-ghost">
             Sign in
           </Link>
-          <Link href="/signup">
-            <Button
-              variant="outline"
-              className="glass-button signup-gradient-hover border-border transition-all duration-200"
-            >
-              Sign up
-            </Button>
+          <Link href="/signup" className="btn btn-primary">
+            Sign up free
           </Link>
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle />
           <button
-            className="p-2 text-foreground transition-colors hover:text-orange"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
+            type="button"
+            className="btn btn-secondary h-10 w-10 px-0"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
           >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </nav>
 
-      {isMenuOpen && (
-        <div className="mt-4 border-t border-border/20 pb-4 md:hidden">
-          <div className="flex flex-col items-center space-y-4 pt-4 text-center">
-            <Link
-              href="/about"
-              className="text-foreground transition-colors hover:text-orange"
-            >
-              About
-            </Link>
-            <Link
-              href="/installers"
-              className="text-foreground transition-colors hover:text-orange"
-            >
-              Installers
-            </Link>
-            <Link
-              href="/login"
-              className="text-sm text-foreground/80 transition-colors hover:text-foreground"
-            >
-              Sign in
-            </Link>
-            <Link href="/signup" className="inline-block">
-              <Button
-                variant="outline"
-                className="glass-button signup-gradient-hover w-32 border-border transition-all duration-200"
-              >
-                Sign up
-              </Button>
-            </Link>
-          </div>
+      {open && (
+        <div id="mobile-menu" className="border-t bg-card px-4 pb-6 pt-2 md:hidden">
+          <ul className="divide-y">
+            {NAV.map((n) => (
+              <li key={n.href}>
+                <Link href={n.href} className="flex h-12 items-center text-[17px] font-medium">
+                  {n.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link href="/login" className="flex h-12 items-center text-[17px] font-medium">
+                Sign in
+              </Link>
+            </li>
+          </ul>
+          <Link href="/signup" className="btn btn-primary mt-4 w-full">
+            Sign up free
+          </Link>
         </div>
       )}
     </header>

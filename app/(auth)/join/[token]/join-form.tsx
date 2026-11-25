@@ -36,7 +36,7 @@ function PasswordField({ label, name, error }: { label: string; name: string; er
         autoComplete="new-password"
         className={cn('input', error && 'border-destructive')}
       />
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
   );
 }
@@ -47,7 +47,7 @@ function JoinButton() {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-10 w-full items-center justify-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary w-full"
     >
       {pending ? 'Joining…' : 'Join the team'}
     </button>

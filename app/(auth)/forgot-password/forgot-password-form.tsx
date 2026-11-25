@@ -15,8 +15,8 @@ export function ForgotPasswordForm() {
 
   if (state.sent) {
     return (
-      <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-center">
-        <MailCheck className="mx-auto h-8 w-8 text-primary" />
+      <div className="rounded-xl p-4 text-center bg-secondary">
+        <MailCheck className="mx-auto h-8 w-8 text-link" />
         <p className="mt-3 text-sm">
           If that email has an account, a reset link is on its way. Check your inbox
           (and spam folder).
@@ -32,7 +32,7 @@ export function ForgotPasswordForm() {
         <input name="email" type="email" autoComplete="email" className="input" />
       </label>
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -47,7 +47,7 @@ function Submit() {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-11 w-full items-center justify-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary w-full"
     >
       {pending ? 'Sending…' : 'Send reset link'}
     </button>

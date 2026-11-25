@@ -3,15 +3,32 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
+  Battery,
+  Blend,
+  Cctv,
+  Check,
+  Clock,
+  Coffee,
+  Info,
+  Lamp,
   Leaf,
+  Mail,
+  MessageCircle,
+  Microwave as MicrowaveIcon,
+  Minus,
+  Phone,
+  PlugZap,
+  Printer,
+  Router,
+  Plus,
+  Shirt,
+  ShowerHead,
+  Speaker,
+  Sun,
+  Trash2,
   TrendingDown,
   Zap,
-  Battery,
-  Sun,
-  Plus,
-  Minus,
-  Trash2,
-  Check,
+  type LucideIcon,
 } from 'lucide-react';
 import type { AppliancePreset, CalculationResult } from '@inverta/shared';
 import { findPreset, formatKobo } from '@inverta/shared';
@@ -26,12 +43,14 @@ const PRESET_IMAGES: Record<string, string> = {
   'Standing fan': '/appliances/standing-fan.png',
   'TV 32"': '/appliances/tv.png',
   'TV 43"': '/appliances/tv.png',
+  'TV 55"': '/appliances/tv.png',
   Refrigerator: '/appliances/fridge.png',
   Freezer: '/appliances/freezer.png',
   'Washing machine': '/appliances/washing-machine.png',
   'AC 1HP': '/appliances/ac.png',
   'AC 1.5HP': '/appliances/ac.png',
   'AC 2HP': '/appliances/ac.png',
+  'Inverter AC 1.5HP': '/appliances/ac.png',
   Laptop: '/appliances/laptop.png',
   'Desktop computer': '/appliances/desktop.png',
   'Phone charger': '/appliances/phone-charger.png',
@@ -39,11 +58,27 @@ const PRESET_IMAGES: Record<string, string> = {
   'DSTV decoder': '/appliances/decoder.png',
 };
 
-// Image when we have one, lightning bolt for custom appliances.
+// Full-colour product art where we have it; a neutral line glyph matched to
+// the appliance where we do not (never a generic bolt, and never orange — the
+// accent belongs to the actions on this page).
+const PRESET_GLYPHS: Record<string, LucideIcon> = {
+  'Security floodlight': Lamp,
+  Microwave: MicrowaveIcon,
+  'Electric kettle': Coffee,
+  Blender: Blend,
+  'Electric iron': Shirt,
+  'Water heater': ShowerHead,
+  'Sound system': Speaker,
+  'CCTV system': Cctv,
+  Printer: Printer,
+  'WiFi router': Router,
+};
+
 function ApplianceVisual({ name, className }: { name: string; className?: string }) {
   const src = PRESET_IMAGES[name];
   if (!src) {
-    return <Zap className={cn('text-primary', className)} />;
+    const Glyph = PRESET_GLYPHS[name] ?? PlugZap;
+    return <Glyph aria-hidden className={cn('p-1 text-muted-foreground', className)} strokeWidth={1.6} />;
   }
   // Static 96px PNGs — plain <img> keeps them out of the image optimizer.
   // eslint-disable-next-line @next/next/no-img-element
@@ -179,85 +214,86 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
   });
 
   return (
-    <div className="container py-8">
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <StepNav step={step} />
 
-      <div className="mx-auto mt-6 max-w-3xl">
-        <div className="rounded-xl border bg-card/80 p-6 shadow-2xl backdrop-blur">
-          {/* Step 1 = Appliances (concrete question),
-              Step 2 = Spending (optional savings context),
-              Step 3 = Contact. */}
-          {step === 1 && (
-            <Step2
-              presets={presets}
-              appliances={appliances}
-              setAppliances={setAppliances}
-              totals={totals}
-              backupHours={backupHours}
-              setBackupHours={setBackupHours}
-            />
-          )}
-          {step === 2 && (
-            <Step1
-              monthlyElectricityBill={monthlyElectricityBill}
-              setMonthlyElectricityBill={setMonthlyElectricityBill}
-              monthlyFuelCost={monthlyFuelCost}
-              setMonthlyFuelCost={setMonthlyFuelCost}
-              generatorKva={generatorKva}
-              setGeneratorKva={setGeneratorKva}
-              generatorHours={generatorHours}
-              setGeneratorHours={setGeneratorHours}
-            />
-          )}
-          {step === 3 && (
-            <Step4
-              customerName={customerName}
-              setCustomerName={setCustomerName}
-              customerEmail={customerEmail}
-              setCustomerEmail={setCustomerEmail}
-              customerPhone={customerPhone}
-              setCustomerPhone={setCustomerPhone}
-              referralSource={referralSource}
-              setReferralSource={setReferralSource}
-              consent={consent}
-              setConsent={setConsent}
-              installerName={installerName}
-            />
-          )}
+      <div className="card mt-6 p-5 sm:p-8">
+        {/* Step 1 = Appliances (concrete question),
+            Step 2 = Spending (optional savings context),
+            Step 3 = Contact. */}
+        {step === 1 && (
+          <Step2
+            presets={presets}
+            appliances={appliances}
+            setAppliances={setAppliances}
+            totals={totals}
+            backupHours={backupHours}
+            setBackupHours={setBackupHours}
+          />
+        )}
+        {step === 2 && (
+          <Step1
+            monthlyElectricityBill={monthlyElectricityBill}
+            setMonthlyElectricityBill={setMonthlyElectricityBill}
+            monthlyFuelCost={monthlyFuelCost}
+            setMonthlyFuelCost={setMonthlyFuelCost}
+            generatorKva={generatorKva}
+            setGeneratorKva={setGeneratorKva}
+            generatorHours={generatorHours}
+            setGeneratorHours={setGeneratorHours}
+          />
+        )}
+        {step === 3 && (
+          <Step4
+            customerName={customerName}
+            setCustomerName={setCustomerName}
+            customerEmail={customerEmail}
+            setCustomerEmail={setCustomerEmail}
+            customerPhone={customerPhone}
+            setCustomerPhone={setCustomerPhone}
+            referralSource={referralSource}
+            setReferralSource={setReferralSource}
+            consent={consent}
+            setConsent={setConsent}
+            installerName={installerName}
+          />
+        )}
 
-          {error && (
-            <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-        </div>
+        {error && (
+          <div role="alert" className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
+            {error}
+          </div>
+        )}
+      </div>
 
-        <div className="mt-6 flex items-center justify-between">
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={step === 1 || submitting}
+          onClick={() => setStep((s) => (s - 1) as Step)}
+        >
+          Back
+        </button>
+        {step < 3 ? (
           <button
-            className="inline-flex h-11 items-center rounded-md border border-border bg-background/40 px-4 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary disabled:opacity-50"
-            disabled={step === 1 || submitting}
-            onClick={() => setStep((s) => (s - 1) as Step)}
+            type="button"
+            className="btn btn-primary min-w-[140px]"
+            disabled={!canAdvance || submitting}
+            onClick={() => setStep((s) => (s + 1) as Step)}
           >
-            Back
+            Continue
           </button>
-          {step < 3 ? (
-            <button
-              className="signup-gradient-hover glass-button inline-flex h-11 items-center rounded-md px-6 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-50"
-              disabled={!canAdvance || submitting}
-              onClick={() => setStep((s) => (s + 1) as Step)}
-            >
-              Continue
-            </button>
-          ) : (
-            <button
-              className="signup-gradient-hover glass-button inline-flex h-11 items-center rounded-md px-6 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-50"
-              disabled={!canAdvance || submitting}
-              onClick={onSubmit}
-            >
-              {submitting ? 'Calculating…' : 'Get my solar plan'}
-            </button>
-          )}
-        </div>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary min-w-[180px]"
+            disabled={!canAdvance || submitting}
+            onClick={onSubmit}
+          >
+            {submitting ? 'Working out your plan…' : 'Get my solar plan'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -270,39 +306,44 @@ function StepNav({ step }: { step: Step }) {
     { n: 3, label: 'Contact' },
   ];
   return (
-    <ol className="mx-auto flex max-w-3xl items-center gap-2">
-      {steps.map((s, i) => (
-        <li key={s.n} className="flex flex-1 items-center gap-2">
-          <div
-            className={cn(
-              'grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold',
-              step > s.n
-                ? 'bg-primary text-primary-foreground'
-                : step === s.n
-                  ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
-                  : 'bg-muted text-muted-foreground',
-            )}
+    <ol className="flex items-center gap-2" aria-label={`Step ${step} of ${steps.length}`}>
+      {steps.map((s, i) => {
+        const done = step > s.n;
+        const current = step === s.n;
+        return (
+          <li
+            key={s.n}
+            aria-current={current ? 'step' : undefined}
+            className={cn('flex min-w-0 items-center gap-2', i < steps.length - 1 && 'flex-1')}
           >
-            {step > s.n ? <Check className="h-4 w-4" /> : s.n}
-          </div>
-          <span
-            className={cn(
-              'text-sm font-medium',
-              step >= s.n ? 'text-foreground' : 'text-muted-foreground',
-            )}
-          >
-            {s.label}
-          </span>
-          {i < steps.length - 1 && (
-            <div
+            <span
               className={cn(
-                'ml-1 h-px flex-1',
-                step > s.n ? 'bg-primary' : 'bg-border',
+                'grid h-8 w-8 shrink-0 place-items-center rounded-full text-[13px] font-semibold tabular-nums',
+                done
+                  ? 'bg-foreground text-background'
+                  : current
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border bg-card text-muted-foreground',
               )}
-            />
-          )}
-        </li>
-      ))}
+            >
+              {done ? <Check className="h-4 w-4" aria-label="Done" /> : s.n}
+            </span>
+            {/* Every label from sm up; on a phone only the current one, so
+                three steps never push the page sideways. */}
+            <span
+              className={cn(
+                'truncate text-[15px] font-medium',
+                current ? 'text-foreground' : 'hidden text-muted-foreground sm:inline',
+              )}
+            >
+              {s.label}
+            </span>
+            {i < steps.length - 1 && (
+              <span aria-hidden className={cn('h-px min-w-4 flex-1', done ? 'bg-foreground' : 'bg-border')} />
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -320,9 +361,10 @@ function Step1(props: {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold">What are you spending on energy today?</h2>
-        <p className="text-sm text-muted-foreground">
-          All fields are optional — answer what you can. We use this to estimate savings and CO₂ prevented.
+        <h2 className="text-[22px] font-semibold tracking-[-0.01em]">What do you spend on power today?</h2>
+        <p className="mt-1 text-[15px] text-muted-foreground">
+          Optional, but it&apos;s how we work out what you&apos;ll save each month and how fast
+          the system pays for itself.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -452,47 +494,43 @@ function Step2(props: {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div>
-        <h2 className="text-xl font-semibold">What do you need to power?</h2>
-        <p className="text-sm text-muted-foreground">
-          Tap the appliances you want the solar system to run. Tap again to add more
-          than one.
+        <h2 className="text-[22px] font-semibold tracking-[-0.01em]">What do you need to power?</h2>
+        <p className="mt-1 text-[15px] text-muted-foreground">
+          Tap an appliance to add it. Tap again for more than one.
         </p>
       </div>
 
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Total load
-            </div>
-            <div className="font-mono text-2xl font-semibold orange-text">
-              {totals.loadW.toLocaleString()} W
-            </div>
+      {/* Running totals: ink figures on a quiet strip. */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border bg-border" aria-live="polite">
+        <div className="bg-secondary px-5 py-4">
+          <div className="label">Total load</div>
+          <div className="figure mt-1.5 whitespace-nowrap text-[28px] leading-none">
+            {totals.loadW.toLocaleString()}
+            <span className="ml-1 text-base font-medium text-muted-foreground">W</span>
           </div>
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Daily energy
-            </div>
-            <div className="font-mono text-2xl font-semibold orange-text">
-              {(totals.dailyWh / 1000).toFixed(1)} kWh
-            </div>
+        </div>
+        <div className="bg-secondary px-5 py-4">
+          <div className="label">Daily energy</div>
+          <div className="figure mt-1.5 whitespace-nowrap text-[28px] leading-none">
+            {(totals.dailyWh / 1000).toFixed(1)}
+            <span className="ml-1 text-base font-medium text-muted-foreground">kWh</span>
           </div>
         </div>
       </div>
 
       {/* Backup hours — the single biggest price lever, so the customer
           chooses it rather than inheriting a hidden default. */}
-      <div className="rounded-lg border bg-background/40 p-4 backdrop-blur">
-        <div className="text-sm font-medium">
+      <fieldset>
+        <legend className="text-[15px] font-medium">
           How long should the battery run these appliances?
-        </div>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Backup time with everything switched on. More hours means more batteries —
-          and a higher price.
+        </legend>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
+          Backup with everything switched on. More hours means more batteries, and a
+          higher price.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 grid grid-cols-4 gap-1 rounded-2xl bg-secondary p-1">
           {BACKUP_HOUR_OPTIONS.map((h) => (
             <button
               key={h}
@@ -500,20 +538,20 @@ function Step2(props: {
               onClick={() => setBackupHours(h)}
               aria-pressed={backupHours === h}
               className={cn(
-                'rounded-full border px-4 py-1.5 text-sm transition-colors',
+                'h-10 rounded-xl text-[15px] font-medium transition-colors duration-150',
                 backupHours === h
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-background/40 hover:border-primary/50 hover:bg-primary/5',
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {h} hours
             </button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
-      {/* Appliance card grid */}
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
+      {/* Appliance tiles */}
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
         {presets.map((p) => {
           const entry = presetEntry(p.name);
           const count = entry?.quantity ?? 0;
@@ -522,127 +560,117 @@ function Step2(props: {
               key={p.name}
               type="button"
               onClick={() => addPreset(p)}
-              aria-label={`Add ${p.name}`}
+              aria-label={count > 0 ? `Add another ${p.name} (${count} added)` : `Add ${p.name}`}
               className={cn(
-                'relative flex flex-col items-center gap-1 rounded-lg border p-2 text-center transition-all',
-                count > 0
-                  ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
-                  : 'border-border bg-background/40 hover:border-primary/50 hover:bg-primary/5',
+                'relative flex min-h-[112px] flex-col items-center justify-center gap-1.5 rounded-2xl border p-3 text-center transition-[border-color,background-color,transform] duration-150 active:scale-[0.98]',
+                count > 0 ? 'border-foreground bg-secondary' : 'bg-card hover:border-foreground/30',
               )}
             >
               {count > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground shadow">
+                <span className="absolute right-2 top-2 grid h-6 min-w-6 place-items-center rounded-full bg-foreground px-1.5 text-[13px] font-semibold tabular-nums text-background">
                   {count}
                 </span>
               )}
-              <ApplianceVisual name={p.name} className="h-9 w-9" />
-              <span className="text-[11px] font-medium leading-tight">{p.name}</span>
-              <span className="text-[9px] text-muted-foreground">
-                {p.defaultWattageW}W
+              <ApplianceVisual name={p.name} className="h-10 w-10" />
+              <span className="text-[13px] font-medium leading-tight">{p.name}</span>
+              <span className="text-[13px] tabular-nums text-muted-foreground">
+                {p.defaultWattageW} W
               </span>
             </button>
           );
         })}
       </div>
 
-      {/* Actions under the grid */}
-      <div className="flex flex-wrap justify-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <button
           type="button"
           onClick={() => setShowCustomForm((v) => !v)}
-          className="signup-gradient-hover glass-button inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-all duration-200"
+          aria-expanded={showCustomForm}
+          className="btn btn-secondary"
         >
-          <Plus className="h-4 w-4" /> Add other appliance
+          <Plus className="h-4 w-4" /> Add an appliance not listed
         </button>
         {appliances.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setAppliances([])}
-            className="inline-flex h-10 items-center rounded-md border bg-background/40 px-4 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary"
-          >
+          <button type="button" onClick={() => setAppliances([])} className="btn btn-ghost">
             Clear all
           </button>
         )}
       </div>
 
       {showCustomForm && (
-        <div className="rounded-md border border-dashed p-3">
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">
-            Add a custom appliance
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+        <div className="rounded-2xl bg-secondary p-4">
+          <div className="text-[15px] font-medium">Add an appliance that isn&apos;t listed</div>
+          <div className="mt-3 flex flex-wrap gap-2">
             <input
               type="text"
-              placeholder="Name"
+              aria-label="Appliance name"
+              placeholder="Name, e.g. Pressing iron"
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
-              className="input flex-1 min-w-[140px]"
+              className="input min-w-[160px] flex-1"
             />
             <input
               type="number"
+              aria-label="Watts"
               placeholder="Watts"
               min="1"
               value={customWattage}
               onChange={(e) => setCustomWattage(e.target.value)}
               className="input w-28"
             />
-            <button
-              type="button"
-              onClick={addCustom}
-              className="inline-flex h-10 items-center rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted"
-            >
+            <button type="button" onClick={addCustom} className="btn btn-secondary">
               Add
             </button>
           </div>
         </div>
       )}
 
-      {/* Selected appliances — fine-tune watts, quantity, and usage hours */}
+      {/* Selected appliances — fine-tune quantity, watts and daily hours. */}
       {appliances.length > 0 && (
-        <div className="divide-y rounded-md border">
-          {appliances.map((a) => {
-            return (
-              <div key={a.key} className="flex flex-wrap items-center gap-3 p-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary/50">
-                  <ApplianceVisual name={a.name} className="h-6 w-6" />
-                </span>
-                <div className="min-w-[120px] flex-1">
-                  <div className="text-sm font-medium">{a.name}</div>
-                  {a.isCustom && (
-                    <div className="text-xs text-muted-foreground">Custom</div>
-                  )}
+        <div>
+          <h3 className="text-[15px] font-medium">
+            Your appliances{' '}
+            <span className="font-normal text-muted-foreground">· adjust watts and daily hours</span>
+          </h3>
+          <ul className="mt-3 divide-y rounded-2xl border">
+            {appliances.map((a) => (
+              <li key={a.key} className="flex flex-wrap items-end gap-x-4 gap-y-3 p-3 sm:p-4">
+                <div className="flex min-w-[150px] flex-1 items-center gap-3 self-center">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-secondary">
+                    <ApplianceVisual name={a.name} className="h-7 w-7" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-[15px] font-medium">{a.name}</div>
+                    {a.isCustom && <div className="text-[13px] text-muted-foreground">Custom</div>}
+                  </div>
                 </div>
-                <div className="flex flex-col text-xs text-muted-foreground">
-                  Qty
-                  <div className="mt-0.5 flex h-9 items-center gap-1">
+                <div className="flex flex-col gap-1 text-[13px] text-muted-foreground">
+                  Quantity
+                  <div className="flex h-10 items-center rounded-xl border bg-card">
                     <button
                       type="button"
                       onClick={() => stepQuantity(a, -1)}
                       aria-label={`Fewer ${a.name}`}
-                      className="grid h-7 w-7 place-items-center rounded-md border bg-background hover:bg-muted"
+                      className="grid h-10 w-10 place-items-center rounded-l-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     >
-                      <Minus className="h-3 w-3" />
+                      <Minus className="h-4 w-4" />
                     </button>
-                    <span className="w-8 text-center font-mono text-sm text-foreground">
+                    <span className="w-8 text-center text-[15px] font-medium tabular-nums text-foreground">
                       {a.quantity}
                     </span>
                     <button
                       type="button"
                       onClick={() => stepQuantity(a, 1)}
                       aria-label={`More ${a.name}`}
-                      className="grid h-7 w-7 place-items-center rounded-md border bg-background hover:bg-muted"
+                      className="grid h-10 w-10 place-items-center rounded-r-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
+                <NumField label="Watts" value={a.wattage} onChange={(v) => update(a.key, { wattage: v })} />
                 <NumField
-                  label="Watts"
-                  value={a.wattage}
-                  onChange={(v) => update(a.key, { wattage: v })}
-                />
-                <NumField
-                  label="Hrs/day"
+                  label="Hours a day"
                   value={a.hoursPerDay}
                   step={0.5}
                   onChange={(v) => update(a.key, { hoursPerDay: v })}
@@ -650,14 +678,14 @@ function Step2(props: {
                 <button
                   type="button"
                   onClick={() => remove(a.key)}
-                  className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                  aria-label="Remove"
+                  className="btn btn-ghost h-10 w-10 px-0 hover:text-destructive"
+                  aria-label={`Remove ${a.name}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
-              </div>
-            );
-          })}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
@@ -680,8 +708,8 @@ function Step4(props: {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold">Where should we send your plan?</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-[22px] font-semibold tracking-[-0.01em]">Where should we send your plan?</h2>
+        <p className="mt-1 text-[15px] text-muted-foreground">
           {props.installerName} will review your inputs and may follow up with a formal proposal.
         </p>
       </div>
@@ -718,12 +746,12 @@ function Step4(props: {
           />
         </Field>
       </div>
-      <label className="flex items-start gap-2 text-sm">
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-secondary p-4 text-[15px] leading-relaxed">
         <input
           type="checkbox"
           checked={props.consent}
           onChange={(e) => props.setConsent(e.target.checked)}
-          className="mt-0.5"
+          className="mt-1 h-5 w-5 shrink-0 accent-primary"
         />
         <span>
           I agree to be contacted by {props.installerName} about my solar plan. I can opt out at any time.
@@ -741,210 +769,312 @@ function Results({
   onRestart: () => void;
 }) {
   const r = data.result;
-  return (
-    <div className="container py-8">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="rounded-xl border bg-card/80 p-6 backdrop-blur">
-          <div className="text-sm text-muted-foreground">Your solar plan from</div>
-          <h1 className="text-2xl font-semibold orange-text">{data.installer.businessName}</h1>
-        </div>
+  const installer = data.installer;
+  const priced = Boolean(r.catalogComplete && r.panels && r.pricing);
 
-        {r.warnings.length > 0 && (
-          <div className="rounded-md border border-accent/40 bg-accent/10 p-3 text-sm">
-            {r.warnings.map((w, i) => (
-              <div key={i}>· {w}</div>
-            ))}
+  const power = r.generator
+    ? `${r.generator.capacityKva} kVA all-in-one`
+    : `${r.inverter ? r.inverter.capacityKva : `~${r.requirements.inverterKva}`} kVA inverter`;
+  const storage = r.generator
+    ? `${r.generator.storageKwh} kWh storage`
+    : `${r.batteries ? r.batteries.totalCapacityKwh : `~${r.requirements.batteryBankKwh}`} kWh battery`;
+  const array = r.panels
+    ? `${r.panels.count} × ${r.panels.wattsPerPanel} W panels`
+    : `~${r.requirements.panelArrayKwp} kWp of panels`;
+
+  const waNumber = installer.phone.replace(/[^\d]/g, '');
+
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      {/* The answer first: what it costs and what it is. */}
+      <section className="rounded-[24px] bg-primary p-6 text-primary-foreground sm:p-8">
+        <div className="text-[15px] font-medium opacity-80">
+          Your solar plan from {installer.businessName}
+        </div>
+        {priced ? (
+          <>
+            <div className="figure mt-3 text-[40px] leading-none sm:text-[52px]">
+              {formatKobo(r.pricing!.totalKobo)}
+            </div>
+            <div className="mt-2 text-[15px] opacity-80">
+              Parts and installation — everything listed below.
+            </div>
+          </>
+        ) : (
+          <div className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.01em] sm:text-[34px]">
+            {power}, {storage}
           </div>
         )}
+        <ul className="mt-6 flex flex-wrap gap-2">
+          {priced && <HeroPill>{power}</HeroPill>}
+          {priced && <HeroPill>{storage}</HeroPill>}
+          <HeroPill>{array}</HeroPill>
+          {r.estimatedBackupHoursTypical !== null && (
+            <HeroPill>About {r.estimatedBackupHoursTypical} hours of backup</HeroPill>
+          )}
+        </ul>
+      </section>
 
-        <SummaryCard title="System summary" icon={<Zap className="h-5 w-5" />}>
-          <dl
-            className={cn(
-              'grid gap-4',
-              r.generator ? 'sm:grid-cols-2' : 'sm:grid-cols-3',
-            )}
-          >
-            {r.generator ? (
-              <Stat
-                label="All-in-one solar generator"
-                value={`${r.generator.capacityKva} kVA · ${r.generator.storageKwh} kWh`}
-                sub={`${r.generator.brand} ${r.generator.model}`}
-              />
-            ) : (
-              <>
-                <Stat
-                  label="Inverter"
-                  value={
-                    r.inverter
-                      ? `${r.inverter.capacityKva} kVA`
-                      : `~${r.requirements.inverterKva} kVA`
-                  }
-                  sub={r.inverter ? r.inverter.model : 'Recommended minimum size'}
-                />
-                <Stat
-                  label="Battery bank"
-                  value={
-                    r.batteries
-                      ? `${r.batteries.totalCapacityKwh} kWh`
-                      : `~${r.requirements.batteryBankKwh} kWh`
-                  }
-                  sub={
-                    r.batteries
-                      ? `${r.batteries.count}× ${r.batteries.model}`
-                      : 'Recommended bank capacity'
-                  }
-                />
-              </>
-            )}
-            <Stat
-              label="Solar array"
+      {r.warnings.length > 0 && (
+        <section className="card mt-4 flex gap-3 p-5">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+          <ul className="space-y-2 text-[15px] leading-relaxed">
+            {r.warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* The system, part by part. */}
+      <section
+        aria-label="Your system"
+        className={cn('mt-4 grid gap-4', r.generator ? 'sm:grid-cols-2' : 'sm:grid-cols-3')}
+      >
+        {r.generator ? (
+          <Part
+            icon={Zap}
+            label="All-in-one solar generator"
+            value={`${r.generator.capacityKva} kVA · ${r.generator.storageKwh} kWh`}
+            sub={`${r.generator.brand} ${r.generator.model}`}
+          />
+        ) : (
+          <>
+            <Part
+              icon={Zap}
+              label="Inverter"
+              value={r.inverter ? `${r.inverter.capacityKva} kVA` : `~${r.requirements.inverterKva} kVA`}
+              sub={r.inverter ? `${r.inverter.brand} ${r.inverter.model}` : 'Recommended minimum size'}
+            />
+            <Part
+              icon={Battery}
+              label="Battery bank"
               value={
-                r.panels
-                  ? `${r.panels.totalKwp} kWp`
-                  : `~${r.requirements.panelArrayKwp} kWp`
+                r.batteries ? `${r.batteries.totalCapacityKwh} kWh` : `~${r.requirements.batteryBankKwh} kWh`
               }
               sub={
-                r.panels
-                  ? `${r.panels.count}× ${r.panels.model}`
-                  : 'Recommended array size'
+                r.batteries
+                  ? `${r.batteries.count} × ${r.batteries.brand} ${r.batteries.model}`
+                  : 'Recommended bank size'
               }
             />
-          </dl>
-          <dl className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-            <div>Connected load: <span className="font-mono text-foreground">{r.totalLoadW.toLocaleString()} W</span></div>
-            <div>Typical draw: <span className="font-mono text-foreground">{r.averageLoadW.toLocaleString()} W</span></div>
-            <div>Daily energy: <span className="font-mono text-foreground">{(r.dailyEnergyWh / 1000).toFixed(1)} kWh</span></div>
-            <div>Startup surge: <span className="font-mono text-foreground">{(r.requirements.peakSurgeW / 1000).toFixed(1)} kW</span></div>
-          </dl>
-          {r.estimatedBackupHoursTypical !== null && (
-            <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
-              <span className="font-medium">
-                ⚡ Battery backup: ~{r.estimatedBackupHoursTypical} hours
-              </span>{' '}
-              <span className="text-muted-foreground">
-                in normal use — fridges and air conditioners cycle on and off rather
-                than drawing full power continuously.
-                {r.estimatedBackupHoursFullLoad !== null && (
-                  <>
-                    {' '}
-                    With every appliance running flat out at the same time it&apos;s
-                    about {r.estimatedBackupHoursFullLoad} hours.
-                  </>
-                )}
-              </span>
-            </div>
-          )}
-        </SummaryCard>
-
-        {!r.catalogComplete && (
-          <div className="rounded-xl border border-accent/40 bg-accent/10 p-5">
-            <h3 className="font-semibold">
-              Exact pricing is on its way
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {data.installer.businessName} has received your system requirements and
-              will follow up with product recommendations and a formal quote for this
-              setup.
-            </p>
-          </div>
-        )}
-
-        {r.catalogComplete && r.panels && r.pricing && (
-          <>
-            <SummaryCard title="Bill of materials" icon={<Battery className="h-5 w-5" />}>
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="py-2 font-medium">Item</th>
-                    <th className="py-2 text-right font-medium">Qty</th>
-                    <th className="py-2 text-right font-medium">Unit</th>
-                    <th className="py-2 text-right font-medium">Line total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {r.generator && (
-                    <BomRow name={`${r.generator.brand} ${r.generator.model}`} qty={1} unit={r.generator.priceKobo} total={r.generator.priceKobo} />
-                  )}
-                  {r.inverter && (
-                    <BomRow name={`${r.inverter.brand} ${r.inverter.model}`} qty={1} unit={r.inverter.priceKobo} total={r.inverter.priceKobo} />
-                  )}
-                  {r.batteries && (
-                    <BomRow name={`${r.batteries.brand} ${r.batteries.model}`} qty={r.batteries.count} unit={r.batteries.unitPriceKobo} total={r.batteries.totalPriceKobo} />
-                  )}
-                  <BomRow name={`${r.panels.brand} ${r.panels.model}`} qty={r.panels.count} unit={r.panels.unitPriceKobo} total={r.panels.totalPriceKobo} />
-                  {r.accessories.map((a) => (
-                    <BomRow key={a.id} name={a.name} qty={a.quantity} unit={a.unitPriceKobo} total={a.totalPriceKobo} />
-                  ))}
-                  <BomRow name="Installation" qty={1} unit={r.pricing.installationFeeKobo} total={r.pricing.installationFeeKobo} />
-                </tbody>
-              </table>
-            </SummaryCard>
-
-            <SummaryCard title="Cost" icon={<Sun className="h-5 w-5" />}>
-              <dl className="space-y-1 text-sm">
-                <CostRow label="Total" value={r.pricing.totalKobo} bold />
-              </dl>
-            </SummaryCard>
           </>
         )}
+        <Part
+          icon={Sun}
+          label="Solar array"
+          value={r.panels ? `${r.panels.totalKwp} kWp` : `~${r.requirements.panelArrayKwp} kWp`}
+          sub={r.panels ? `${r.panels.count} × ${r.panels.brand} ${r.panels.model}` : 'Recommended array size'}
+        />
+      </section>
 
-        {r.monthlySavingsKobo !== null && r.paybackMonths !== null && (
-          <SummaryCard title="Savings vs. today" icon={<TrendingDown className="h-5 w-5" />}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Stat
-                label="Estimated monthly savings"
-                value={formatKobo(Math.max(0, r.monthlySavingsKobo))}
-                sub="Compared to what you spend on power today"
-              />
-              <Stat
-                label="Payback period"
-                value={`${r.paybackMonths} months`}
-                sub="At current spending levels"
-              />
-            </div>
-          </SummaryCard>
-        )}
-
-        {r.co2SavedKgPerMonth !== null && (
-          <SummaryCard title="Environmental impact" icon={<Leaf className="h-5 w-5" />}>
-            <Stat
-              label="CO₂ prevented per month"
-              value={`${r.co2SavedKgPerMonth} kg`}
-              sub={`≈ ${Math.max(0, Math.round(r.co2SavedKgPerMonth / 21))} trees planted equivalent`}
-            />
-          </SummaryCard>
-        )}
-
-        <div className="rounded-xl border border-primary/40 bg-primary/5 p-6 backdrop-blur">
-          <h3 className="text-lg font-semibold">
-            <span className="orange-text">{data.installer.businessName}</span> has your details.
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            They&apos;ll review your sizing and reach out with a formal proposal. In the
-            meantime you can reach them directly:
+      {r.estimatedBackupHoursTypical !== null && (
+        <section className="card mt-4 p-6">
+          <h2 className="section-title">About {r.estimatedBackupHoursTypical} hours on battery</h2>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
+            That&apos;s in normal use, where fridges and air conditioners cycle on and off
+            rather than drawing full power the whole time.
+            {r.estimatedBackupHoursFullLoad !== null && (
+              <>
+                {' '}
+                With every appliance running flat out at once, it&apos;s about{' '}
+                {r.estimatedBackupHoursFullLoad} hours.
+              </>
+            )}
           </p>
-          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-            <span>📞 {data.installer.phone}</span>
-            <span>✉️ {data.installer.email}</span>
+        </section>
+      )}
+
+      {r.monthlySavingsKobo !== null && r.paybackMonths !== null && (
+        <section aria-label="Savings" className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Part
+            icon={TrendingDown}
+            label="Saved each month"
+            // An estimate: whole naira, never kobo-level precision it does not have.
+            value={formatKobo(Math.max(0, Math.round(r.monthlySavingsKobo / 100) * 100))}
+            sub="Against what you spend on power today"
+          />
+          <Part
+            icon={Clock}
+            label="Pays for itself in"
+            value={`${r.paybackMonths} months`}
+            sub={
+              r.co2SavedKgPerMonth !== null
+                ? `And ${r.co2SavedKgPerMonth} kg less CO₂ every month`
+                : 'At your current spending'
+            }
+          />
+        </section>
+      )}
+
+      {r.monthlySavingsKobo === null && r.co2SavedKgPerMonth !== null && (
+        <section className="card mt-4 flex items-center gap-4 p-6">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-secondary">
+            <Leaf className="h-5 w-5 text-success" aria-hidden />
+          </span>
+          <p className="text-[15px]">
+            <span className="figure">{r.co2SavedKgPerMonth} kg</span> less CO₂ every month
+            than running your generator.
+          </p>
+        </section>
+      )}
+
+      {!priced && (
+        <section className="card mt-4 p-6">
+          <h2 className="section-title">Your exact price is on its way</h2>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
+            {installer.businessName} has your requirements and will send product
+            recommendations with a formal quote for this setup.
+          </p>
+        </section>
+      )}
+
+      {priced && (
+        <section className="card mt-4" aria-labelledby="included">
+          <h2 id="included" className="section-title px-6 pt-6">
+            What&apos;s included
+          </h2>
+          <ul className="mt-2 divide-y">
+            {r.generator && (
+              <Line name={`${r.generator.brand} ${r.generator.model}`} qty={1} unit={r.generator.priceKobo} total={r.generator.priceKobo} />
+            )}
+            {r.inverter && (
+              <Line name={`${r.inverter.brand} ${r.inverter.model}`} qty={1} unit={r.inverter.priceKobo} total={r.inverter.priceKobo} />
+            )}
+            {r.batteries && (
+              <Line name={`${r.batteries.brand} ${r.batteries.model}`} qty={r.batteries.count} unit={r.batteries.unitPriceKobo} total={r.batteries.totalPriceKobo} />
+            )}
+            <Line name={`${r.panels!.brand} ${r.panels!.model}`} qty={r.panels!.count} unit={r.panels!.unitPriceKobo} total={r.panels!.totalPriceKobo} />
+            {r.accessories.map((a) => (
+              <Line key={a.id} name={a.name} qty={a.quantity} unit={a.unitPriceKobo} total={a.totalPriceKobo} />
+            ))}
+            <Line name="Installation" qty={1} unit={r.pricing!.installationFeeKobo} total={r.pricing!.installationFeeKobo} />
+          </ul>
+          <div className="flex items-baseline justify-between gap-4 border-t px-6 py-5">
+            <span className="text-[15px] font-semibold">Total</span>
+            <span className="figure text-[24px]">{formatKobo(r.pricing!.totalKobo)}</span>
           </div>
-          <div className="mt-5">
-            <button
-              onClick={onRestart}
-              className="inline-flex h-10 items-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-muted"
+        </section>
+      )}
+
+      <section className="card mt-4 p-6" aria-labelledby="sizing">
+        <h2 id="sizing" className="section-title">
+          How we sized it
+        </h2>
+        <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Measure label="Connected load" value={`${r.totalLoadW.toLocaleString()} W`} />
+          <Measure label="Typical draw" value={`${r.averageLoadW.toLocaleString()} W`} />
+          <Measure label="Daily energy" value={`${(r.dailyEnergyWh / 1000).toFixed(1)} kWh`} />
+          <Measure label="Startup surge" value={`${(r.requirements.peakSurgeW / 1000).toFixed(1)} kW`} />
+        </dl>
+      </section>
+
+      {/* The point of the page: talk to the installer. */}
+      <section className="card mt-4 p-6 sm:p-8" aria-labelledby="next">
+        <h2 id="next" className="text-[20px] font-semibold tracking-[-0.01em]">
+          {installer.businessName} will be in touch
+        </h2>
+        <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
+          They&apos;ll check your sizing and send a formal proposal. Want to talk sooner?
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {waNumber && (
+            <a
+              href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
+                `Hi ${installer.businessName}, I just got a solar plan from your calculator and I'd like to talk about it.`,
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
             >
-              Start over
-            </button>
-          </div>
+              <MessageCircle className="h-4 w-4" /> Message on WhatsApp
+            </a>
+          )}
+          <a href={`tel:${installer.phone}`} className="btn btn-secondary">
+            <Phone className="h-4 w-4" /> Call
+          </a>
+          <a href={`mailto:${installer.email}`} className="btn btn-secondary">
+            <Mail className="h-4 w-4" /> Email
+          </a>
         </div>
-      </div>
+        <button type="button" onClick={onRestart} className="link mt-6 text-[15px]">
+          Start a new quote
+        </button>
+      </section>
     </div>
+  );
+}
+
+function HeroPill({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="rounded-full bg-black/10 px-3 py-1 text-[13px] font-medium">{children}</li>
+  );
+}
+
+function Part({
+  icon: Icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="card p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary">
+          <Icon className="h-[18px] w-[18px] text-muted-foreground" aria-hidden />
+        </span>
+        <span className="label">{label}</span>
+      </div>
+      <div className="figure mt-4 text-[26px] leading-none">{value}</div>
+      {sub && <div className="mt-2 text-[13px] leading-snug text-muted-foreground">{sub}</div>}
+    </div>
+  );
+}
+
+function Measure({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="label">{label}</dt>
+      <dd className="figure mt-1 whitespace-nowrap text-[17px]">{value}</dd>
+    </div>
+  );
+}
+
+function Line({
+  name,
+  qty,
+  unit,
+  total,
+}: {
+  name: string;
+  qty: number;
+  unit: number;
+  total: number;
+}) {
+  return (
+    <li className="flex items-start justify-between gap-4 px-6 py-3.5">
+      <div className="min-w-0">
+        <div className="text-[15px]">{name}</div>
+        {qty > 1 && (
+          <div className="text-[13px] tabular-nums text-muted-foreground">
+            {qty} × {formatKobo(unit)}
+          </div>
+        )}
+      </div>
+      <div className="figure shrink-0 text-[15px]">{formatKobo(total)}</div>
+    </li>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-[15px] font-medium">{label}</span>
       {children}
     </label>
   );
@@ -964,11 +1094,11 @@ function NumField({
   step?: number;
 }) {
   return (
-    <label className="flex flex-col text-xs text-muted-foreground">
+    <label className="flex flex-col gap-1 text-[13px] text-muted-foreground">
       {label}
       <input
         type="number"
-        className="input mt-0.5 h-9 w-20"
+        className="input h-10 w-[88px] tabular-nums"
         value={value}
         min={min}
         step={step}
@@ -978,86 +1108,6 @@ function NumField({
         }}
       />
     </label>
-  );
-}
-
-function SummaryCard({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border bg-card/80 p-6 shadow-xl backdrop-blur">
-      <div className="mb-4 flex items-center gap-2">
-        <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/15 text-primary">
-          {icon}
-        </div>
-        <h2 className="font-semibold">{title}</h2>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div>
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-0.5 text-lg font-semibold">{value}</div>
-      {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
-    </div>
-  );
-}
-
-function BomRow({
-  name,
-  qty,
-  unit,
-  total,
-}: {
-  name: string;
-  qty: number;
-  unit: number;
-  total: number;
-}) {
-  return (
-    <tr>
-      <td className="py-2">{name}</td>
-      <td className="py-2 text-right font-mono">{qty}</td>
-      <td className="py-2 text-right font-mono">{formatKobo(unit)}</td>
-      <td className="py-2 text-right font-mono">{formatKobo(total)}</td>
-    </tr>
-  );
-}
-
-function CostRow({
-  label,
-  value,
-  bold,
-  muted,
-}: {
-  label: string;
-  value: number;
-  bold?: boolean;
-  muted?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'flex justify-between',
-        bold && 'text-base font-semibold',
-        muted && 'text-muted-foreground',
-      )}
-    >
-      <span>{label}</span>
-      <span className="font-mono">{formatKobo(value)}</span>
-    </div>
   );
 }
 

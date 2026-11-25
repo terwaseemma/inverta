@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { requireOnboardedInstaller } from '@/lib/auth';
+import { PageHeader, PageShell } from '@/components/app/page';
 import { prisma } from '@/lib/prisma';
 import { StoreManager, type ProductDto } from './store-manager';
 
@@ -25,23 +26,17 @@ export default async function StorePage() {
   }));
 
   return (
-    <div className="container max-w-4xl py-10">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Store</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Products listed on your public storefront.
-          </p>
-        </div>
-        <Link
-          href={`/store/${installer.slug}`}
-          target="_blank"
-          className="inline-flex items-center gap-1.5 text-sm orange-text hover:underline"
-        >
-          View storefront <ArrowUpRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Store"
+        lead="Products listed on your public storefront, where customers enquire on WhatsApp."
+        actions={
+          <Link href={`/store/${installer.slug}`} target="_blank" className="btn btn-secondary">
+            View storefront <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        }
+      />
       <StoreManager products={products} />
-    </div>
+    </PageShell>
   );
 }

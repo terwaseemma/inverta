@@ -34,12 +34,12 @@ export default async function OnboardingPage({
   ]);
 
   return (
-    <main className="min-h-screen hero-gradient">
-      <div className="container py-12">
+    <main className="min-h-screen">
+      <div className="px-4 py-10 sm:px-6 sm:py-14">
         <div className="mx-auto max-w-2xl">
           <div className="mb-8 flex items-center justify-between">
             <Wordmark size="md" href="/" />
-            <div className="text-xs text-muted-foreground">
+            <div className="text-[13px] text-muted-foreground">
               Setting up <span className="text-foreground">{installer.businessName}</span>
             </div>
           </div>
@@ -51,12 +51,12 @@ export default async function OnboardingPage({
                 <Link
                   href={`/onboarding?step=${st.n}`}
                   className={cn(
-                    'grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold transition-colors',
+                    'grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold transition-colors',
                     step > st.n
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-foreground text-background'
                       : step === st.n
-                        ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
-                        : 'bg-secondary text-muted-foreground hover:text-foreground',
+                        ? 'bg-primary text-primary-foreground'
+                        : 'border bg-card text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {step > st.n ? <Check className="h-4 w-4" /> : <st.Icon className="h-4 w-4" />}
@@ -64,26 +64,26 @@ export default async function OnboardingPage({
                 <div className="hidden sm:block">
                   <div
                     className={cn(
-                      'text-xs font-medium',
+                      'text-[15px] font-medium',
                       step >= st.n ? 'text-foreground' : 'text-muted-foreground',
                     )}
                   >
                     {st.label}
                   </div>
                   {st.optional && (
-                    <div className="text-[10px] text-muted-foreground">Optional</div>
+                    <div className="text-[13px] text-muted-foreground">Optional</div>
                   )}
                 </div>
                 {i < STEPS.length - 1 && (
                   <div
-                    className={cn('ml-1 h-px flex-1', step > st.n ? 'bg-primary' : 'bg-border')}
+                    className={cn('ml-1 h-px flex-1', step > st.n ? 'bg-foreground' : 'bg-border')}
                   />
                 )}
               </li>
             ))}
           </ol>
 
-          <div className="rounded-xl border bg-card/80 p-8 shadow-2xl backdrop-blur">
+          <div className="card p-6 sm:p-8">
             {step === 1 && (
               <>
                 <StepHeading
@@ -105,18 +105,21 @@ export default async function OnboardingPage({
               <>
                 <StepHeading
                   title="Stock your catalog"
-                  sub="Your calculator quotes real prices from your product catalog. Start with our template at market-typical prices and edit them anytime — or skip and add products later."
+                  sub="Your calculator quotes real prices from your catalog. Load ours to start — its prices are trade cost, so set your own before customers see them — or skip and add products later."
                 />
                 {catalogCount > 0 ? (
                   <div className="space-y-5">
-                    <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
-                      ✓ Your catalog has {catalogCount} item{catalogCount === 1 ? '' : 's'}.
-                      You can manage them from the dashboard after setup.
+                    <div className="flex items-start gap-3 rounded-xl bg-secondary p-4 text-[15px]">
+                      <Check className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden />
+                      <span>
+                        Your catalog has {catalogCount} item{catalogCount === 1 ? '' : 's'}. Review
+                        the prices from your dashboard before you share your link.
+                      </span>
                     </div>
                     <div className="flex justify-end">
                       <Link
                         href="/onboarding?step=3"
-                        className="signup-gradient-hover glass-button inline-flex h-11 items-center rounded-md px-6 text-sm font-medium text-foreground transition-all duration-200"
+                        className="btn btn-primary"
                       >
                         Continue
                       </Link>
@@ -127,20 +130,20 @@ export default async function OnboardingPage({
                     <form action={loadStarterCatalogStepAction}>
                       <button
                         type="submit"
-                        className="signup-gradient-hover glass-button inline-flex h-12 w-full items-center justify-center gap-2 rounded-md text-sm font-medium text-foreground transition-all duration-200"
+                        className="btn btn-primary h-12 px-7 text-base w-full"
                       >
                         <Sparkles className="h-4 w-4" />
-                        Load starter catalog (15 items, editable)
+                        Load the starter catalog
                       </button>
                     </form>
-                    <p className="text-center text-xs text-muted-foreground">
+                    <p className="text-center text-[13px] text-muted-foreground">
                       Without a catalog, your calculator shows customers their system
                       sizing but no prices — leads are still captured either way.
                     </p>
                     <div className="flex justify-center">
                       <Link
                         href="/onboarding?step=3"
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        className="btn btn-ghost"
                       >
                         Skip for now
                       </Link>
@@ -181,7 +184,7 @@ export default async function OnboardingPage({
           </div>
 
           {step < 4 && (
-            <p className="mt-4 text-center text-xs text-muted-foreground">
+            <p className="mt-4 text-center text-[13px] text-muted-foreground">
               You can revisit every step later from your dashboard settings.
             </p>
           )}
@@ -194,8 +197,8 @@ export default async function OnboardingPage({
 function StepHeading({ title, sub }: { title: string; sub: string }) {
   return (
     <div className="mb-6">
-      <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{sub}</p>
+      <h1 className="text-[26px] font-semibold tracking-[-0.02em]">{title}</h1>
+      <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{sub}</p>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="hero-gradient flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col">
       <Header />
 
       <main className="flex-1">
@@ -50,14 +50,14 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="border-y border-border/40 bg-background/30 py-16 backdrop-blur">
+        <section className="border-y bg-card py-16">
           <div className="container max-w-4xl">
             <h2 className="mb-8 text-center text-2xl font-bold">
               And for homes &amp; businesses
             </h2>
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-xl border bg-card/60 p-6 backdrop-blur">
-                <Sun className="h-6 w-6 text-primary" />
+              <div className="card p-6">
+                <Sun className="h-6 w-6 text-link" />
                 <h3 className="mt-3 font-semibold">Know what you need — free</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Pick your appliances, tell us your backup needs, and get an instant
@@ -65,8 +65,8 @@ export default function AboutPage() {
                   from a local installer.
                 </p>
               </div>
-              <div className="rounded-xl border bg-card/60 p-6 backdrop-blur">
-                <Users className="h-6 w-6 text-primary" />
+              <div className="card p-6">
+                <Users className="h-6 w-6 text-link" />
                 <h3 className="mt-3 font-semibold">Work with trusted installers</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Every calculator on Inverta belongs to a real installer who follows
@@ -78,13 +78,13 @@ export default function AboutPage() {
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Link
                 href={`/calc/${process.env.NEXT_PUBLIC_DEFAULT_CALCULATOR_SLUG ?? 'boostsolar'}`}
-                className="signup-gradient-hover glass-button inline-flex h-11 items-center gap-2 rounded-md px-6 text-sm font-medium text-foreground transition-all duration-200"
+                className="btn btn-primary"
               >
                 <Zap className="h-4 w-4" /> Calculate your solar
               </Link>
               <Link
                 href="/installers"
-                className="inline-flex h-11 items-center rounded-md border bg-background/40 px-6 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary"
+                className="btn btn-secondary"
               >
                 Browse installers
               </Link>
@@ -100,7 +100,7 @@ export default function AboutPage() {
           </p>
           <Link
             href="/signup"
-            className="signup-gradient-hover glass-button mt-6 inline-flex h-12 items-center rounded-md px-8 text-base font-medium text-foreground transition-all duration-200"
+            className="btn btn-primary h-12 px-7 text-base mt-6"
           >
             Create your calculator
           </Link>
@@ -124,12 +124,12 @@ function Step({
   body: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card/60 p-6 backdrop-blur">
+    <div className="card p-6">
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/15 text-primary">
+        <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/15 text-link">
           {icon}
         </div>
-        <span className="text-3xl font-bold text-border">{n}</span>
+        <span className="figure text-[32px] text-muted-foreground/50">{n}</span>
       </div>
       <h3 className="mt-4 font-semibold">{title}</h3>
       <p className="mt-1 text-sm text-muted-foreground">{body}</p>

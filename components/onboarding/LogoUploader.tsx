@@ -57,9 +57,9 @@ export function LogoUploader({ initialUrl }: { initialUrl?: string }) {
 
   return (
     <div className="space-y-2">
-      <span className="text-sm font-medium">Business logo</span>
+      <span className="text-[15px] font-medium">Business logo</span>
       <div className="flex items-center gap-4">
-        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-secondary/40">
+        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border bg-secondary">
           {url ? (
             // Public URL from Supabase Storage — plain <img> avoids remote
             // pattern config in next.config for now.
@@ -76,7 +76,7 @@ export function LogoUploader({ initialUrl }: { initialUrl?: string }) {
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
               className={cn(
-                'inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50',
+                'btn btn-secondary btn-sm',
               )}
             >
               {uploading ? (
@@ -98,14 +98,14 @@ export function LogoUploader({ initialUrl }: { initialUrl?: string }) {
                 type="button"
                 onClick={clear}
                 disabled={uploading}
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground hover:text-destructive"
+                className="btn btn-secondary btn-sm"
               >
                 <X className="h-3.5 w-3.5" /> Remove
               </button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">PNG, JPG, WebP, or SVG. Max 2 MB.</p>
-          {error && <p className="text-xs text-destructive">{error}</p>}
+          <p className="text-[13px] text-muted-foreground">PNG, JPG, WebP, or SVG. Max 2 MB.</p>
+          {error && <p className="text-[13px] text-destructive">{error}</p>}
         </div>
       </div>
       {/* Hidden — the URL is what the onboarding server action reads. */}

@@ -21,12 +21,12 @@ export default async function JoinPage({ params }: { params: { token: string } }
   if (!seat || seat.authUserId || !seat.isActive) {
     return (
       <div className="space-y-4 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Invite not valid</h1>
+        <h1 className="text-[26px] font-semibold tracking-[-0.02em]">Invite not valid</h1>
         <p className="text-sm text-muted-foreground">
           This link has already been used or was withdrawn. If you already joined,
           sign in. Otherwise ask the company for a new invite.
         </p>
-        <Link href="/login" className="orange-text text-sm hover:underline">
+        <Link href="/login" className="link font-medium text-sm">
           Sign in
         </Link>
       </div>
@@ -36,13 +36,13 @@ export default async function JoinPage({ params }: { params: { token: string } }
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/15 text-primary">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/15 text-link">
           <UsersRound className="h-7 w-7" />
         </div>
-        <h1 className="mt-4 text-2xl font-bold tracking-tight">
+        <h1 className="mt-4 text-[26px] font-semibold tracking-[-0.02em]">
           Join {seat.installer.businessName}
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
           Hi {seat.name.split(' ')[0]} — set a password to get your own solar quote
           link. Every customer who requests a quote through it is credited to you.
         </p>

@@ -12,14 +12,15 @@ export default async function TeamLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/90 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b bg-card">
         <div className="container flex h-14 max-w-3xl items-center gap-3">
           <Wordmark size="sm" href="/team" />
-          <div className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-            <span className="text-foreground">{member.name}</span> · {installer.businessName}
+          <div className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
+            <span className="text-foreground">{member.name}</span>
+            <span className="hidden sm:inline"> · {installer.businessName}</span>
           </div>
           <ThemeToggle />
-          <SignOutButton className="h-8 px-3 text-xs" />
+          <SignOutButton className="h-8 px-3 text-[13px]" />
         </div>
       </header>
       <main>{children}</main>

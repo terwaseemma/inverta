@@ -21,7 +21,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       <span
         aria-hidden
         className={cn(
-          'inline-flex h-9 w-9 items-center justify-center rounded-md border border-border',
+          'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border',
           className,
         )}
       />
@@ -35,7 +35,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={label}
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background/40 text-foreground/80 backdrop-blur transition-colors hover:bg-secondary hover:text-foreground',
+        'btn btn-secondary h-10 w-10 shrink-0 px-0 text-muted-foreground hover:text-foreground',
         className,
       )}
     >

@@ -1,62 +1,41 @@
 import Link from 'next/link';
-import { ArrowLeft, LayoutDashboard, Package, Users } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { requireAdmin } from '@/lib/auth';
+import { AdminNav } from './admin-nav';
 
-const NAV = [
-  { href: '/admin', label: 'Overview', Icon: LayoutDashboard },
-  { href: '/admin/catalog', label: 'Platform catalog', Icon: Package },
-  { href: '/admin/installers', label: 'Installers', Icon: Users },
-];
-
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// The platform admin shell — the dashboard's shell with an Admin mark, so it is
+// unmistakable which side of the platform you are on.
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { installer } = await requireAdmin();
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
-      <aside className="border-b border-sidebar-border bg-sidebar lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
-          <div className="flex items-center gap-2">
-            <Wordmark size="sm" href="/admin" />
-            <span className="rounded-full border border-primary/40 bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-              Admin
-            </span>
-          </div>
-          <ThemeToggle />
-        </div>
-        <nav className="flex gap-1 overflow-x-auto p-3 lg:flex-1 lg:flex-col lg:overflow-visible">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex shrink-0 items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <item.Icon className="h-4 w-4" />
-              {item.label}
+    <div className="min-h-screen lg:flex">
+      <aside className="border-b bg-card p-4 lg:w-[272px] lg:shrink-0 lg:border-b-0 lg:bg-transparent lg:pr-0">
+        <div className="lg:card lg:sticky lg:top-4 lg:flex lg:h-[calc(100vh-2rem)] lg:flex-col lg:p-4">
+          <div className="flex h-12 items-center justify-between gap-2 px-1">
+            {/* Wordmark alone here: the Admin chip needs the room the icon took. */}
+            <Link href="/admin" className="flex shrink-0 items-center" aria-label="Inverta admin">
+              <Wordmark size="sm" />
             </Link>
-          ))}
-        </nav>
-        <div className="hidden border-t border-sidebar-border p-4 lg:block">
-          <div className="mb-3 text-xs">
-            <div className="font-medium text-sidebar-foreground">
-              {installer.businessName}
-            </div>
-            <div className="text-sidebar-foreground/60">Signed in as admin</div>
+            <span className="chip bg-foreground text-background">Admin</span>
+            <div className="flex-1" />
+            <ThemeToggle />
           </div>
-          <Link
-            href="/dashboard"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-3 py-2 text-xs font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to my dashboard
-          </Link>
+          <div className="mt-4 lg:mt-6 lg:flex-1">
+            <AdminNav />
+          </div>
+          <div className="hidden rounded-2xl bg-secondary p-3 lg:block">
+            <div className="truncate text-sm font-semibold">{installer.businessName}</div>
+            <div className="text-[13px] text-muted-foreground">Signed in as admin</div>
+            <Link href="/dashboard" className="btn btn-secondary btn-sm mt-3 w-full">
+              <ArrowLeft className="h-3.5 w-3.5" /> My dashboard
+            </Link>
+          </div>
         </div>
       </aside>
-      <main className="flex-1 bg-background">{children}</main>
+      <main className="min-w-0 flex-1">{children}</main>
     </div>
   );
 }

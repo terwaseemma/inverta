@@ -90,7 +90,7 @@ export function AdminCatalogManager({ items }: { items: MasterItemDto[] }) {
         <button
           type="button"
           onClick={() => setShowAddForm((v) => !v)}
-          className="signup-gradient-hover glass-button inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-all duration-200"
+          className="btn btn-primary"
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? 'Close' : 'Add product'}
@@ -98,14 +98,14 @@ export function AdminCatalogManager({ items }: { items: MasterItemDto[] }) {
       </div>
 
       {showAddForm && (
-        <div className="rounded-xl border bg-card/80 p-5 backdrop-blur">
-          <h2 className="mb-4 font-semibold">New platform product</h2>
+        <div className="card p-5">
+          <h2 className="section-title mb-4">New platform product</h2>
           <ItemForm onSaved={() => setShowAddForm(false)} />
         </div>
       )}
 
       {items.length === 0 && (
-        <div className="rounded-xl border border-dashed bg-card/40 p-10 text-center">
+        <div className="card border-dashed p-10 text-center">
           <Package className="mx-auto h-10 w-10 text-muted-foreground" />
           <h2 className="mt-4 text-lg font-semibold">No platform products yet</h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
@@ -118,11 +118,10 @@ export function AdminCatalogManager({ items }: { items: MasterItemDto[] }) {
       {grouped.map(
         ({ type, items: group }) =>
           group.length > 0 && (
-            <section key={type} className="rounded-xl border bg-card/80 backdrop-blur">
+            <section key={type} className="card">
               <div className="flex items-center gap-2 border-b px-5 py-3">
-                <Package className="h-4 w-4 text-primary" />
-                <h2 className="font-semibold">{TYPE_LABELS[type].plural}</h2>
-                <span className="text-xs text-muted-foreground">({group.length})</span>
+                <h2 className="section-title">{TYPE_LABELS[type].plural}</h2>
+                <span className="text-[13px] text-muted-foreground">{group.length}</span>
               </div>
               <div className="divide-y">
                 {group.map((item) => (
@@ -142,7 +141,7 @@ function SeedButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-10 items-center gap-2 rounded-md border bg-background/40 px-4 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary disabled:opacity-60"
+      className="btn btn-secondary"
     >
       <Sparkles className="h-4 w-4" />
       {pending ? 'Seeding…' : 'Seed from starter template'}
@@ -155,15 +154,15 @@ function ItemRow({ item }: { item: MasterItemDto }) {
 
   if (editing) {
     return (
-      <div className="p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">
+      <div className="bg-secondary/60 p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-[15px] font-semibold">
             Edit {item.brand} {item.model}
           </h3>
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="btn btn-ghost btn-sm"
           >
             Cancel
           </button>
@@ -181,21 +180,21 @@ function ItemRow({ item }: { item: MasterItemDto }) {
       )}
     >
       <div className="min-w-[180px] flex-1">
-        <div className="text-sm font-medium">
+        <div className="text-[15px] font-medium">
           {item.brand} {item.model}
           {!item.isActive && (
-            <span className="ml-2 rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground">
+            <span className="chip ml-2 text-muted-foreground">
               Hidden
             </span>
           )}
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-[13px] text-muted-foreground">
           {describeCapacity(item)}
           {item.chemistry ? ` · ${item.chemistry.toLowerCase()}` : ''}
           {item.notes ? ` · ${item.notes}` : ''}
         </div>
       </div>
-      <div className="font-mono text-sm">{formatKobo(item.priceKobo)}</div>
+      <div className="figure text-[15px]">{formatKobo(item.priceKobo)}</div>
       <div className="flex items-center gap-1">
         <form action={toggleMasterItemAction}>
           <input type="hidden" name="id" value={item.id} />
@@ -203,7 +202,7 @@ function ItemRow({ item }: { item: MasterItemDto }) {
             type="submit"
             aria-label={item.isActive ? 'Hide from installers' : 'Show to installers'}
             title={item.isActive ? 'Hide from installers' : 'Show to installers'}
-            className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="btn btn-ghost h-10 w-10 px-0"
           >
             {item.isActive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
           </button>
@@ -212,9 +211,9 @@ function ItemRow({ item }: { item: MasterItemDto }) {
           type="button"
           onClick={() => setEditing(true)}
           aria-label={`Edit ${item.model}`}
-          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="btn btn-ghost h-10 w-10 px-0"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-4 w-4" />
         </button>
         <form
           action={deleteMasterItemAction}
@@ -228,9 +227,9 @@ function ItemRow({ item }: { item: MasterItemDto }) {
           <button
             type="submit"
             aria-label={`Delete ${item.model}`}
-            className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+            className="btn btn-ghost h-10 w-10 px-0 hover:text-destructive"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </form>
       </div>
@@ -316,7 +315,7 @@ function ItemForm({
               <option value="24">24V</option>
               <option value="48">48V</option>
             </select>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[13px] text-muted-foreground">
               Inverters only pair with same-voltage batteries in quotes.
             </span>
           </label>
@@ -397,7 +396,7 @@ function ItemForm({
       </label>
 
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -412,7 +411,7 @@ function SaveButton({ isEdit }: { isEdit: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-10 items-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary"
     >
       {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Add to platform catalog'}
     </button>
@@ -444,7 +443,7 @@ function FormField({
         defaultValue={defaultValue}
         className={cn('input', error && 'border-destructive')}
       />
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
   );
 }

@@ -1,75 +1,64 @@
 import Link from 'next/link';
-import { ShieldCheck } from 'lucide-react';
-import { Wordmark } from '@/components/brand/Wordmark';
+import { BrandIcon, Wordmark } from '@/components/brand/Wordmark';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { PostHogIdentify } from '@/components/analytics/PostHogIdentify';
-import { LogoutButton } from './logout-button';
-import { MobileNav } from './mobile-nav';
-import { NAV_ITEMS } from './nav';
 import { requireOnboardedInstaller } from '@/lib/auth';
+import { AccountCard } from './account-card';
+import { MobileNav } from './mobile-nav';
+import { NavLinks } from './nav-links';
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// The owner's shell: a floating sidebar card on the canvas (desktop), a slim
+// top bar with a drawer (phone). Pages render into <main> on the canvas and
+// lay out their own cards.
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { installer, email } = await requireOnboardedInstaller();
+  const isAdmin = installer.role === 'ADMIN';
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
+    <div className="min-h-screen lg:flex">
       <PostHogIdentify
         installerId={installer.id}
         email={email}
         businessName={installer.businessName}
       />
-      {/* Mobile top bar — visible only < lg */}
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/40 bg-background/90 px-3 backdrop-blur lg:hidden">
-        <MobileNav installerName={installer.businessName} email={email} />
-        <div className="pointer-events-none absolute inset-x-0 flex justify-center">
-          <Wordmark size="sm" href="/dashboard" className="pointer-events-auto" />
-        </div>
+
+      {/* Phone and tablet: slim bar, drawer for the nav. */}
+      <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-card px-4 lg:hidden">
+        <MobileNav
+          businessName={installer.businessName}
+          email={email}
+          logoUrl={installer.logoUrl}
+          isAdmin={isAdmin}
+        />
+        <Wordmark size="sm" href="/dashboard" />
+        <div className="flex-1" />
         <ThemeToggle />
       </header>
 
-      {/* Desktop sidebar — visible only ≥ lg */}
-      <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar lg:flex lg:flex-col">
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
-          <Wordmark size="sm" href="/dashboard" />
-          <ThemeToggle />
-        </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              <item.Icon className="h-4 w-4" />
-              {item.label}
+      {/* Desktop: the sidebar floats on the canvas as one card. */}
+      <aside className="hidden lg:block lg:w-[272px] lg:shrink-0 lg:p-4 lg:pr-0">
+        <div className="card sticky top-4 flex h-[calc(100vh-2rem)] flex-col p-4">
+          <div className="flex h-12 items-center justify-between px-1">
+            <Link href="/dashboard" className="flex items-center gap-2.5" aria-label="Inverta dashboard">
+              <BrandIcon size={28} />
+              <Wordmark size="sm" />
             </Link>
-          ))}
-          {installer.role === 'ADMIN' && (
-            <Link
-              href="/admin"
-              className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
-            >
-              <ShieldCheck className="h-4 w-4" />
-              Admin
-            </Link>
-          )}
-        </nav>
-        <div className="border-t border-sidebar-border p-4">
-          <div className="mb-3 text-xs">
-            <div className="font-medium text-sidebar-foreground">
-              {installer.businessName}
-            </div>
-            <div className="truncate text-sidebar-foreground/60">{email}</div>
+            <ThemeToggle />
           </div>
-          <LogoutButton />
+
+          <div className="mt-6 flex-1 overflow-y-auto">
+            <NavLinks isAdmin={isAdmin} />
+          </div>
+
+          <AccountCard
+            businessName={installer.businessName}
+            email={email}
+            logoUrl={installer.logoUrl}
+          />
         </div>
       </aside>
 
-      <main className="flex-1 bg-background">{children}</main>
+      <main className="min-w-0 flex-1">{children}</main>
     </div>
   );
 }

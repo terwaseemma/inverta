@@ -41,21 +41,21 @@ export function ProfileForm({
         <Field label="Contact person" name="contactName" defaultValue={defaults.contactName} error={err.contactName} />
         <Field label="WhatsApp number" name="phone" defaultValue={defaults.phone} error={err.phone} />
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium">State / region</span>
+          <span className="text-[15px] font-medium">State / region</span>
           <select name="region" defaultValue={defaults.region} className="input">
             {NIGERIAN_STATES.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          {err.region && <span className="text-xs text-destructive">{err.region}</span>}
+          {err.region && <span className="text-[13px] text-destructive">{err.region}</span>}
         </label>
         <Field label="Website (optional)" name="websiteUrl" defaultValue={defaults.websiteUrl} placeholder="https://…" error={err.websiteUrl} />
         <Field label="Business address" name="address" defaultValue={defaults.address} error={err.address} />
       </div>
       <label className="block space-y-1.5">
-        <span className="text-sm font-medium">Tagline / short bio</span>
+        <span className="text-[15px] font-medium">Tagline / short bio</span>
         <textarea name="bio" defaultValue={defaults.bio} rows={2} className="input min-h-[64px] py-2" />
-        {err.bio && <span className="text-xs text-destructive">{err.bio}</span>}
+        {err.bio && <span className="text-[13px] text-destructive">{err.bio}</span>}
       </label>
       <FormFooter state={state} label="Save profile" />
     </form>
@@ -81,7 +81,7 @@ export function PricingForm({
       <input type="hidden" name="feeMode" value={feeMode} />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Installation fee type</span>
+          <span className="text-[15px] font-medium">Installation fee type</span>
           <select
             value={feeMode}
             onChange={(e) => setFeeMode(e.target.value as 'flat' | 'percent')}
@@ -125,10 +125,10 @@ export function PaymentForm({
 
   return (
     <form action={formAction} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Bank" name="bankName" defaultValue={defaults.bankName} placeholder="e.g. Moniepoint MFB" error={err.bankName} />
         <Field label="Account number" name="bankAccountNumber" defaultValue={defaults.bankAccountNumber} placeholder="e.g. 9037945493" error={err.bankAccountNumber} />
-        <Field label="Account name" name="bankAccountName" defaultValue={defaults.bankAccountName} placeholder="e.g. Your Business Ltd" error={err.bankAccountName} />
+        <Field className="sm:col-span-2" label="Account name" name="bankAccountName" defaultValue={defaults.bankAccountName} placeholder="e.g. Your Business Ltd" error={err.bankAccountName} />
       </div>
       <FormFooter state={state} label="Save payment details" />
     </form>
@@ -150,22 +150,32 @@ export function CalculatorLinkForm({
   return (
     <form action={formAction} className="space-y-4">
       <label className="block space-y-1.5">
-        <span className="text-sm font-medium">Link handle</span>
+        <span className="text-[15px] font-medium">Link handle</span>
         <input
           name="slug"
           value={slug}
           onChange={(e) => setSlug(e.target.value.toLowerCase())}
           className={cn('input font-mono', err.slug && 'border-destructive')}
         />
-        {err.slug && <span className="text-xs text-destructive">{err.slug}</span>}
+        {err.slug && <span className="text-[13px] text-destructive">{err.slug}</span>}
       </label>
-      <div className="rounded-md border bg-secondary/40 p-3 font-mono text-xs text-muted-foreground">
+      <div className="break-all rounded-xl bg-secondary px-4 py-3 text-[13px] text-muted-foreground">
         <div>{appUrl}/calc/<span className="text-foreground">{slug || '…'}</span></div>
         <div>{appUrl}/store/<span className="text-foreground">{slug || '…'}</span></div>
       </div>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="isActive" defaultChecked={defaults.isActive} />
-        Calculator link is active (customers can submit)
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-secondary p-4 text-[15px]">
+        <input
+          type="checkbox"
+          name="isActive"
+          defaultChecked={defaults.isActive}
+          className="mt-0.5 h-5 w-5 shrink-0 accent-primary"
+        />
+        <span>
+          Calculator is live
+          <span className="block text-[13px] text-muted-foreground">
+            Off hides it from customers — your marketers&apos; links stop working too.
+          </span>
+        </span>
       </label>
       <FormFooter state={state} label="Save link" />
     </form>
@@ -179,7 +189,9 @@ function Field({
   defaultValue,
   placeholder,
   error,
+  className,
 }: {
+  className?: string;
   label: string;
   name: string;
   type?: string;
@@ -188,8 +200,8 @@ function Field({
   error?: string;
 }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium">{label}</span>
+    <label className={cn('block space-y-1.5', className)}>
+      <span className="text-[15px] font-medium">{label}</span>
       <input
         name={name}
         type={type}
@@ -197,7 +209,7 @@ function Field({
         placeholder={placeholder}
         className={cn('input', error && 'border-destructive')}
       />
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
   );
 }
@@ -206,8 +218,8 @@ function FormFooter({ state, label }: { state: SettingsFormState; label: string 
   return (
     <div className="flex items-center gap-3">
       <SubmitButton label={label} />
-      {state.success && <span className="text-xs text-primary">Saved ✓</span>}
-      {state.error && <span className="text-xs text-destructive">{state.error}</span>}
+      {state.success && <span className="text-[13px] text-success">Saved</span>}
+      {state.error && <span className="text-[13px] text-destructive">{state.error}</span>}
     </div>
   );
 }
@@ -215,11 +227,7 @@ function FormFooter({ state, label }: { state: SettingsFormState; label: string 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-10 items-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
-    >
+    <button type="submit" disabled={pending} className="btn btn-secondary">
       {pending ? 'Saving…' : label}
     </button>
   );

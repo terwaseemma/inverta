@@ -2,161 +2,315 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Inverta brand tokens. All colors HSL.
-   :root  = light theme
-   .dark  = dark theme (the brand default — applied by next-themes)
-   Orange stays as the primary/accent across both. */
+/* Inverta design tokens. All colours HSL triplets so Tailwind can read them
+   as `hsl(var(--x))`.
+
+   :root  = light: a warm paper canvas, white cards, warm near-black ink.
+   .dark  = dark (the brand default): near-black canvas, charcoal cards.
+
+   The interface is kept 90–95% neutral. Orange is the ONE accent: the
+   primary button, the focus ring, links, the active nav item, and a few
+   status marks. Everything else is ink, canvas and hairline. */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 230 15% 12%;
+    --background: 40 9% 92%;          /* canvas  #edece8 */
+    --foreground: 30 10% 9%;          /* ink     warm near-black, never #000 */
 
     --card: 0 0% 100%;
-    --card-foreground: 230 15% 12%;
-
+    --card-foreground: 30 10% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 230 15% 12%;
+    --popover-foreground: 30 10% 9%;
 
-    --primary: 18 100% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 18 100% 60%;           /* brand orange #ff7a33 */
+    --primary-foreground: 24 40% 8%;  /* ink on orange: 7:1, where white is 2.5:1 */
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 230 15% 12%;
-
-    --muted: 210 40% 96%;
-    --muted-foreground: 230 8% 45%;
+    --secondary: 40 12% 95.5%;        /* quiet fill inside a card */
+    --secondary-foreground: 30 10% 9%;
+    --muted: 40 12% 95.5%;
+    --muted-foreground: 30 5% 38%;    /* labels and meta, 5:1 on white */
 
     --accent: 18 100% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent-foreground: 24 40% 8%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 70% 48%;
     --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 32%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 18 100% 60%;
+    --border: 36 10% 87%;             /* hairline: ink at roughly 10% */
+    --input: 36 9% 83%;
+    --ring: 18 100% 55%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --orange: 18 100% 60%;
-    --orange-foreground: 0 0% 100%;
+    --orange-foreground: 24 40% 8%;
+    /* Orange as TEXT: brand orange is 2.5:1 on white, so links and accent
+       words take a deeper burnt orange on light (5.3:1). Fills keep --orange. */
+    --link: 18 88% 38%;
 
-    --hero-gradient: radial-gradient(
-      ellipse at center,
-      hsl(30 100% 96%) 0%,
-      hsl(0 0% 100%) 60%
-    );
-    --button-gradient: linear-gradient(
-      135deg,
-      hsl(var(--muted)),
-      hsl(var(--muted-foreground) / 0.1)
-    );
-
-    --sidebar-background: 210 40% 98%;
-    --sidebar-foreground: 230 15% 20%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 30 10% 9%;
     --sidebar-primary: 18 100% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 230 15% 20%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 18 100% 60%;
+    --sidebar-primary-foreground: 24 40% 8%;
+    --sidebar-accent: 40 12% 95%;
+    --sidebar-accent-foreground: 30 10% 9%;
+    --sidebar-border: 36 10% 87%;
+    --sidebar-ring: 18 100% 55%;
+
+    --card-highlight: 0 0% 100% / 0;   /* no inner highlight on light */
+    --lift-shadow: 0 14px 28px -16px hsl(30 20% 20% / 0.22);
+
+    /* Motion: one UI ease-out, no overshoot. */
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --t-in: 150ms;
+    --t-out: 120ms;
+    --t-press: 90ms;
   }
 
   .dark {
-    --background: 230 15% 8%;
-    --foreground: 0 0% 98%;
+    --background: 240 5% 4%;          /* canvas  #09090b */
+    --foreground: 40 12% 95%;
 
-    --card: 230 15% 12%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 230 15% 12%;
-    --popover-foreground: 0 0% 98%;
+    --card: 240 4% 8.5%;              /* #141416, one clear step off the canvas */
+    --card-foreground: 40 12% 95%;
+    --popover: 240 4% 10%;
+    --popover-foreground: 40 12% 95%;
 
     --primary: 18 100% 60%;
-    --primary-foreground: 0 0% 98%;
+    --primary-foreground: 24 40% 8%;
 
-    --secondary: 230 15% 15%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 230 15% 15%;
-    --muted-foreground: 0 0% 65%;
+    --secondary: 240 4% 12%;
+    --secondary-foreground: 40 12% 95%;
+    --muted: 240 4% 12%;
+    --muted-foreground: 240 4% 63%;
 
     --accent: 18 100% 60%;
-    --accent-foreground: 0 0% 98%;
+    --accent-foreground: 24 40% 8%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 80% 62%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 50% 52%;
 
-    --border: 230 15% 20%;
-    --input: 230 15% 20%;
+    --border: 240 4% 16%;
+    --input: 240 4% 20%;
     --ring: 18 100% 60%;
 
     --orange: 18 100% 60%;
-    --orange-foreground: 0 0% 98%;
+    --orange-foreground: 24 40% 8%;
+    --link: 18 100% 64%;              /* brand orange reads at 7:1 on the dark canvas */
 
-    --hero-gradient: radial-gradient(
-      ellipse at center,
-      hsl(250 60% 15%) 0%,
-      hsl(230 25% 8%) 60%
-    );
-
-    --sidebar-background: 230 15% 10%;
-    --sidebar-foreground: 0 0% 90%;
+    --sidebar-background: 240 4% 8.5%;
+    --sidebar-foreground: 40 12% 92%;
     --sidebar-primary: 18 100% 60%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 230 15% 15%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 230 15% 20%;
+    --sidebar-primary-foreground: 24 40% 8%;
+    --sidebar-accent: 240 4% 13%;
+    --sidebar-accent-foreground: 40 12% 95%;
+    --sidebar-border: 240 4% 16%;
     --sidebar-ring: 18 100% 60%;
+
+    --card-highlight: 0 0% 100% / 0.05; /* the lit top edge dark cards need */
+    --lift-shadow: 0 16px 32px -18px hsl(0 0% 0% / 0.7);
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
-    background: var(--hero-gradient);
     min-height: 100vh;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Focus shows at once, in the accent, never animated. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.28);
   }
 }
 
 @layer components {
-  .input {
-    @apply flex h-10 w-full rounded-md border border-input bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
+  /* ── Buttons ────────────────────────────────────────────────────────
+     Exactly one filled style (the main action) and one quiet style.
+     Hover steps 1px up and deepens; press sinks below rest. Never a
+     gradient, glass or glow. */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-[15px] font-medium;
+    height: 2.75rem;
+    transition:
+      background-color var(--t-out) var(--ease),
+      border-color var(--t-out) var(--ease),
+      color var(--t-out) var(--ease),
+      transform var(--t-out) var(--ease);
   }
-
-  .hero-gradient {
-    background: var(--hero-gradient);
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    @apply pointer-events-none opacity-50;
   }
-
-  .orange-text {
-    color: hsl(var(--orange));
+  .btn-sm {
+    @apply rounded-lg px-3 text-sm;
+    height: 2.25rem;
   }
-
-  .glass-button {
-    background: var(--button-gradient);
-    backdrop-filter: blur(10px);
-    border: 1px solid hsl(var(--border));
-  }
-
-  /* Hover treatment for primary CTAs — the marketing site's signature look. */
-  .signup-gradient-hover:hover {
-    background-image: linear-gradient(
-      135deg,
-      hsl(var(--orange)) 0%,
-      hsl(18 100% 70%) 50%,
-      hsl(var(--orange)) 100%
-    );
+  .btn-primary {
+    background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    border-color: transparent;
+  }
+  .btn-secondary {
+    @apply border bg-card text-foreground;
+  }
+  .btn-ghost {
+    @apply text-muted-foreground;
+  }
+  .btn-danger {
+    @apply border border-destructive/40 bg-card text-destructive;
   }
 
-  /* Wordmark image (originally white/transparent) filtered so it reads on
-     either background — mid-gray works against both. */
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover {
+      transform: translateY(-1px);
+      transition-duration: var(--t-in);
+    }
+    .btn-primary:hover {
+      background: hsl(18 100% 54%);
+    }
+    .btn-secondary:hover {
+      @apply bg-secondary;
+      border-color: hsl(var(--foreground) / 0.22);
+    }
+    .btn-ghost:hover {
+      @apply bg-secondary text-foreground;
+    }
+    .btn-danger:hover {
+      @apply bg-destructive/10;
+    }
+  }
+  .btn:active {
+    transform: translateY(1px) scale(0.985);
+    transition-duration: var(--t-press);
+  }
+
+  /* ── Cards ──────────────────────────────────────────────────────────
+     Barely there: one step off the canvas, a hairline, no shadow at rest.
+     Only a card that IS a link lifts. Never a card inside a card. */
+  .card {
+    @apply rounded-[20px] border bg-card text-card-foreground;
+    box-shadow: inset 0 1px 0 hsl(var(--card-highlight));
+  }
+  .card-link {
+    transition:
+      transform var(--t-out) var(--ease),
+      border-color var(--t-out) var(--ease),
+      box-shadow var(--t-out) var(--ease);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-link:hover {
+      transform: translateY(-2px);
+      border-color: hsl(var(--foreground) / 0.2);
+      box-shadow:
+        inset 0 1px 0 hsl(var(--card-highlight)),
+        var(--lift-shadow);
+      transition-duration: 180ms;
+    }
+  }
+
+  /* A list of rows inside a card: hairlines between, the row is the target. */
+  .row-link {
+    transition: background-color var(--t-out) var(--ease);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .row-link:hover {
+      @apply bg-secondary/70;
+      transition-duration: var(--t-in);
+    }
+  }
+
+  /* ── Type ─────────────────────────────────────────────────────────── */
+  .page-title {
+    @apply text-[28px] font-semibold leading-tight tracking-[-0.02em] sm:text-[32px];
+  }
+  .page-lead {
+    @apply mt-1.5 max-w-[62ch] text-[15px] leading-relaxed text-muted-foreground;
+  }
+  .section-title {
+    @apply text-[17px] font-semibold tracking-[-0.01em];
+  }
+  /* Labels: 13px, medium, sentence case. Never tracked capitals. */
+  .label {
+    @apply text-[13px] font-medium text-muted-foreground;
+  }
+  /* Big figures: tabular so columns of money line up. */
+  .figure {
+    @apply font-semibold tabular-nums tracking-[-0.02em];
+  }
+
+  /* ── Fields ───────────────────────────────────────────────────────── */
+  .input {
+    @apply flex w-full rounded-xl border border-input bg-card px-3.5 text-[15px] text-foreground placeholder:text-muted-foreground/80 disabled:cursor-not-allowed disabled:opacity-50;
+    height: 2.75rem;
+    transition:
+      border-color 140ms var(--ease),
+      box-shadow 140ms var(--ease);
+  }
+  textarea.input {
+    @apply py-2.5;
+    height: auto;
+  }
+  .input:focus-visible,
+  .input:focus {
+    outline: none;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.18);
+  }
+
+  /* ── Small marks ──────────────────────────────────────────────────── */
+  .chip {
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  /* Brand accent text — one figure or word at a time, never paragraphs. */
+  .orange-text {
+    color: hsl(var(--link));
+  }
+  /* Text links: accent colour, a faint hairline at rest, full underline on hover. */
+  .link {
+    color: hsl(var(--link));
+    text-decoration: underline;
+    text-decoration-color: hsl(var(--link) / 0.3);
+    text-underline-offset: 3px;
+    transition: text-decoration-color var(--t-out) var(--ease);
+  }
+  .link:hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* The wordmark image ships white; filtered to read on either theme. */
   .wordmark-gray {
     filter: brightness(0) saturate(100%) invert(37%);
+  }
+  .dark .wordmark-gray {
+    filter: brightness(0) saturate(100%) invert(82%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .card-link,
+  .row-link,
+  .input {
+    transition-property: background-color, border-color, color, box-shadow;
+  }
+  .btn:hover,
+  .btn:active,
+  .card-link:hover {
+    transform: none;
   }
 }

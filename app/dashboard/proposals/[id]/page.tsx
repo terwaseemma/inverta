@@ -1,18 +1,15 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
 import { requireOnboardedInstaller } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAppUrl } from '@/lib/app-url';
+import { shortDate } from '@/lib/format';
+import { PageHeader, PageShell } from '@/components/app/page';
+import { ProposalBadge } from '../proposal-badge';
 import { ProposalEditor } from './proposal-editor';
 
 export const metadata = { title: 'Proposal · Inverta' };
 
-export default async function ProposalEditPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function ProposalEditPage({ params }: { params: { id: string } }) {
   const { installer } = await requireOnboardedInstaller();
 
   const proposal = await prisma.proposal.findFirst({
@@ -24,26 +21,20 @@ export default async function ProposalEditPage({
   });
   if (!proposal) notFound();
 
-  return (
-    <div className="container max-w-3xl py-10">
-      <Link
-        href="/dashboard/proposals"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> All proposals
-      </Link>
+  const history = [
+    `Created ${shortDate(proposal.createdAt)}`,
+    proposal.sentAt && `sent ${shortDate(proposal.sentAt)}`,
+    proposal.viewedAt && `opened by the customer ${shortDate(proposal.viewedAt)}`,
+  ].filter(Boolean);
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Proposal for <span className="orange-text">{proposal.lead.customerName}</span>
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Status: {proposal.status}
-          {proposal.sentAt &&
-            ` · sent ${proposal.sentAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}`}
-          {proposal.viewedAt && ' · viewed by customer'}
-        </p>
-      </div>
+  return (
+    <PageShell width="narrow">
+      <PageHeader
+        back={{ href: '/dashboard/proposals', label: 'All proposals' }}
+        title={`Proposal for ${proposal.lead.customerName}`}
+        lead={history.join(' · ')}
+        actions={<ProposalBadge status={proposal.status} className="h-8 px-3 text-sm" />}
+      />
 
       <ProposalEditor
         proposal={{
@@ -61,6 +52,6 @@ export default async function ProposalEditPage({
         }}
         appUrl={getAppUrl()}
       />
-    </div>
+    </PageShell>
   );
 }

@@ -32,11 +32,20 @@ export function StoreManager({ products }: { products: ProductDto[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-[15px] text-muted-foreground">
+          {products.length > 0 && (
+            <>
+              <span className="figure text-foreground">{products.length}</span>{' '}
+              {products.length === 1 ? 'listing' : 'listings'} on your storefront
+            </>
+          )}
+        </p>
         <button
           type="button"
           onClick={() => setShowAddForm((v) => !v)}
-          className="signup-gradient-hover glass-button inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-all duration-200"
+          aria-expanded={showAddForm}
+          className={showAddForm ? 'btn btn-secondary' : 'btn btn-primary'}
         >
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? 'Close' : 'Add product'}
@@ -44,23 +53,25 @@ export function StoreManager({ products }: { products: ProductDto[] }) {
       </div>
 
       {showAddForm && (
-        <div className="rounded-xl border bg-card/80 p-5 backdrop-blur">
-          <h2 className="mb-4 font-semibold">New listing</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">New listing</h2>
           <ProductForm onSaved={() => setShowAddForm(false)} />
         </div>
       )}
 
       {products.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-card/40 p-10 text-center">
-          <ShoppingBag className="mx-auto h-10 w-10 text-muted-foreground" />
-          <h2 className="mt-4 text-lg font-semibold">No listings yet</h2>
-          <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            List solar generators, kits, or components — customers browse them on
-            your public storefront.
+        <div className="card flex flex-col items-center px-6 py-14 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+            <ShoppingBag className="h-6 w-6" />
+          </span>
+          <h2 className="mt-4 text-[17px] font-semibold">No listings yet</h2>
+          <p className="mt-1.5 max-w-sm text-[15px] leading-relaxed text-muted-foreground">
+            List solar generators, kits or parts — customers browse them on your public
+            storefront.
           </p>
         </div>
       ) : (
-        <div className="divide-y rounded-xl border bg-card/80 backdrop-blur">
+        <div className="card divide-y overflow-hidden">
           {products.map((p) => (
             <ProductRow key={p.id} product={p} />
           ))}
@@ -75,13 +86,13 @@ function ProductRow({ product }: { product: ProductDto }) {
 
   if (editing) {
     return (
-      <div className="p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Edit {product.name}</h3>
+      <div className="bg-secondary/60 p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-[15px] font-semibold">Edit {product.name}</h3>
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="btn btn-ghost btn-sm"
           >
             Cancel
           </button>
@@ -92,42 +103,42 @@ function ProductRow({ product }: { product: ProductDto }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-5 py-3">
+    <div className="flex flex-wrap items-center gap-3 px-6 py-4">
       {product.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={product.imageUrl}
           alt=""
-          className="h-10 w-10 rounded-md border object-cover"
+          className="h-11 w-11 rounded-xl border object-cover"
         />
       ) : (
-        <div className="grid h-10 w-10 place-items-center rounded-md border bg-secondary/40">
+        <div className="grid h-11 w-11 place-items-center rounded-xl bg-secondary">
           <ShoppingBag className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
       <div className="min-w-[160px] flex-1">
-        <div className="text-sm font-medium">
+        <div className="text-[15px] font-medium">
           {product.name}
           {!product.isAvailable && (
-            <span className="ml-2 rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground">
+            <span className="chip ml-2 text-muted-foreground">
               Unavailable
             </span>
           )}
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-[13px] text-muted-foreground">
           {TYPE_LABELS[product.type]}
           {product.description ? ` · ${product.description.slice(0, 60)}` : ''}
         </div>
       </div>
-      <div className="font-mono text-sm">{formatKobo(product.priceKobo)}</div>
+      <div className="figure text-[15px]">{formatKobo(product.priceKobo)}</div>
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => setEditing(true)}
           aria-label={`Edit ${product.name}`}
-          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="btn btn-ghost h-10 w-10 px-0"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-4 w-4" />
         </button>
         <form
           action={deleteProductAction}
@@ -139,9 +150,9 @@ function ProductRow({ product }: { product: ProductDto }) {
           <button
             type="submit"
             aria-label={`Delete ${product.name}`}
-            className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+            className="btn btn-ghost h-10 w-10 px-0 hover:text-destructive"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </form>
       </div>
@@ -202,7 +213,7 @@ function ProductForm({
           className="input min-h-[64px] py-2"
         />
         {err.description && (
-          <span className="text-xs text-destructive">{err.description}</span>
+          <span className="text-[13px] text-destructive">{err.description}</span>
         )}
       </label>
       <label className="flex items-center gap-2 text-sm">
@@ -215,7 +226,7 @@ function ProductForm({
       </label>
 
       {state.error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[15px] text-destructive">
           {state.error}
         </div>
       )}
@@ -230,7 +241,7 @@ function SaveButton({ isEdit }: { isEdit: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-10 items-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
+      className="btn btn-primary"
     >
       {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Add listing'}
     </button>
@@ -262,7 +273,7 @@ function FormField({
         placeholder={placeholder}
         className={cn('input', error && 'border-destructive')}
       />
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
   );
 }

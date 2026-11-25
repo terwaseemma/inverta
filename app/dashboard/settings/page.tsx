@@ -1,4 +1,5 @@
 import { requireOnboardedInstaller } from '@/lib/auth';
+import { PageHeader, PageShell } from '@/components/app/page';
 import { prisma } from '@/lib/prisma';
 import { getAppUrl } from '@/lib/app-url';
 import {
@@ -20,18 +21,18 @@ export default async function SettingsPage() {
   const appUrl = getAppUrl();
 
   return (
-    <div className="container max-w-3xl py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Signed in as {email}. Changes apply to your calculator and future proposals
-          immediately.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Settings"
+        lead={`Signed in as ${email}. Changes reach your calculator and new proposals straight away.`}
+      />
 
-      <div className="space-y-8">
-        <section className="rounded-xl border bg-card/80 p-6 backdrop-blur">
-          <h2 className="mb-4 font-semibold">Business profile</h2>
+      <div className="divide-y">
+        <SettingsSection
+          id="profile"
+          title="Business profile"
+          description="How your business appears on the calculator, proposals and your storefront."
+        >
           <ProfileForm
             defaults={{
               businessName: installer.businessName,
@@ -44,13 +45,13 @@ export default async function SettingsPage() {
               bio: installer.bio ?? '',
             }}
           />
-        </section>
+        </SettingsSection>
 
-        <section className="rounded-xl border bg-card/80 p-6 backdrop-blur">
-          <h2 className="mb-1 font-semibold">Pricing</h2>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Applied to every calculator quote and new proposal.
-          </p>
+        <SettingsSection
+          id="fee"
+          title="Installation fee"
+          description="Added to every calculator quote and new proposal, on top of your catalog prices."
+        >
           <PricingForm
             defaults={{
               feeMode: installer.installationFeePercent != null ? 'percent' : 'flat',
@@ -58,14 +59,13 @@ export default async function SettingsPage() {
               installationFeePercent: installer.installationFeePercent ?? 10,
             }}
           />
-        </section>
+        </SettingsSection>
 
-        <section className="rounded-xl border bg-card/80 p-6 backdrop-blur">
-          <h2 className="mb-1 font-semibold">Payment details</h2>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Printed on your proposals so customers know where to pay. Leave blank to
-            omit.
-          </p>
+        <SettingsSection
+          id="payment"
+          title="Payment details"
+          description="Printed on your proposals so customers know where to pay. Leave blank to leave them off."
+        >
           <PaymentForm
             defaults={{
               bankName: installer.bankName ?? '',
@@ -73,13 +73,13 @@ export default async function SettingsPage() {
               bankAccountName: installer.bankAccountName ?? '',
             }}
           />
-        </section>
+        </SettingsSection>
 
-        <section className="rounded-xl border bg-card/80 p-6 backdrop-blur">
-          <h2 className="mb-1 font-semibold">Calculator link</h2>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Your public handle — used for your calculator and storefront URLs.
-          </p>
+        <SettingsSection
+          id="link"
+          title="Calculator link"
+          description="Your public handle, used in your calculator and storefront addresses."
+        >
           <CalculatorLinkForm
             appUrl={appUrl}
             defaults={{
@@ -87,13 +87,45 @@ export default async function SettingsPage() {
               isActive: calcLink?.isActive ?? true,
             }}
           />
-        </section>
+        </SettingsSection>
 
-        <section className="rounded-xl border border-destructive/30 bg-card/80 p-6 backdrop-blur">
-          <h2 className="mb-4 font-semibold text-destructive">Danger zone</h2>
+        <SettingsSection
+          id="danger"
+          title="Delete account"
+          description="Removes your business, catalog, leads, proposals and team for good."
+          danger
+        >
           <DangerZone businessName={installer.businessName} />
-        </section>
+        </SettingsSection>
       </div>
-    </div>
+    </PageShell>
+  );
+}
+
+// The settings pattern: what a group is for on the left, its form on the
+// right; stacked on a phone.
+function SettingsSection({
+  id,
+  title,
+  description,
+  danger,
+  children,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-labelledby={id} className="grid gap-4 py-8 first:pt-0 xl:grid-cols-[240px_1fr] xl:gap-10">
+      <div>
+        <h2 id={id} className={danger ? 'section-title text-destructive' : 'section-title'}>
+          {title}
+        </h2>
+        <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{description}</p>
+      </div>
+      <div className={danger ? 'card border-destructive/30 p-6' : 'card p-6'}>{children}</div>
+    </section>
   );
 }

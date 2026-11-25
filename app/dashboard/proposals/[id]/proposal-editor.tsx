@@ -70,101 +70,106 @@ export function ProposalEditor({
           )}
         />
 
-        <section className="rounded-xl border bg-card/80 p-5 backdrop-blur">
-          <h2 className="mb-4 font-semibold">Line items</h2>
-          <div className="space-y-3">
+        <section className="card" aria-labelledby="lines">
+          <h2 id="lines" className="section-title px-6 pt-6">
+            Line items
+          </h2>
+          {/* Column headings once on wide screens; each row keeps its own labels on a phone. */}
+          <div aria-hidden className="mt-3 hidden gap-3 border-t px-6 pb-2 pt-3 text-[13px] text-muted-foreground md:grid md:grid-cols-[minmax(0,1fr)_80px_144px_120px_44px]">
+            <span>Item</span>
+            <span>Qty</span>
+            <span>Unit price (₦)</span>
+            <span className="text-right">Amount</span>
+            <span />
+          </div>
+          <ul className="mt-3 divide-y border-y md:mt-0">
             {items.map((item, i) => (
-              <div key={i} className="flex flex-wrap items-end gap-2 rounded-md border p-3">
-                <label className="min-w-[160px] flex-1 space-y-1 text-xs text-muted-foreground">
-                  Item
+              <li key={i} className="flex flex-wrap items-end gap-3 px-6 py-4 md:grid md:items-center md:py-3 md:grid-cols-[minmax(0,1fr)_80px_144px_120px_44px]">
+                <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-[13px] text-muted-foreground md:min-w-0">
+                  <span className="md:sr-only">Item</span>
                   <input
                     value={item.name}
                     onChange={(e) => update(i, { name: e.target.value })}
-                    className="input h-9"
-                    placeholder="e.g. Luminous 5kVA inverter"
+                    className="input"
+                    placeholder="e.g. Haisic 4.2kVA inverter"
                   />
                 </label>
-                <label className="w-20 space-y-1 text-xs text-muted-foreground">
-                  Qty
+                <label className="flex w-20 flex-col gap-1 text-[13px] text-muted-foreground md:w-auto">
+                  <span className="md:sr-only">Qty</span>
                   <input
                     type="number"
                     min={1}
                     value={item.quantity}
-                    onChange={(e) =>
-                      update(i, { quantity: Math.max(1, Number(e.target.value) || 1) })
-                    }
-                    className="input h-9"
+                    onChange={(e) => update(i, { quantity: Math.max(1, Number(e.target.value) || 1) })}
+                    className="input tabular-nums"
                   />
                 </label>
-                <label className="w-36 space-y-1 text-xs text-muted-foreground">
-                  Unit price (₦)
+                <label className="flex w-36 flex-col gap-1 text-[13px] text-muted-foreground md:w-auto">
+                  <span className="md:sr-only">Unit price (₦)</span>
                   <input
                     type="number"
                     min={0}
                     value={item.unitPriceNaira}
-                    onChange={(e) =>
-                      update(i, { unitPriceNaira: Math.max(0, Number(e.target.value) || 0) })
-                    }
-                    className="input h-9"
+                    onChange={(e) => update(i, { unitPriceNaira: Math.max(0, Number(e.target.value) || 0) })}
+                    className="input tabular-nums"
                   />
                 </label>
-                <div className="w-32 pb-2 text-right font-mono text-sm">
+                <div className="figure flex h-11 w-32 items-center justify-end text-[15px] md:w-auto">
                   ₦{(item.quantity * item.unitPriceNaira).toLocaleString('en-NG')}
                 </div>
                 <button
                   type="button"
                   onClick={() => removeRow(i)}
                   disabled={items.length === 1}
-                  aria-label="Remove line"
-                  className="mb-0.5 grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-40"
+                  aria-label={`Remove ${item.name || 'line'}`}
+                  className="btn btn-ghost h-11 w-11 px-0 hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
-              </div>
+              </li>
             ))}
-          </div>
-          <div className="mt-4 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={addRow}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-background/40 px-3 text-sm font-medium backdrop-blur hover:bg-secondary"
-            >
+          </ul>
+          <div className="flex items-center justify-between gap-4 px-6 py-5">
+            <button type="button" onClick={addRow} className="btn btn-secondary btn-sm">
               <Plus className="h-3.5 w-3.5" /> Add line
             </button>
             <div className="text-right">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Total</div>
-              <div className="font-mono text-xl font-semibold orange-text">
-                ₦{totalNaira.toLocaleString('en-NG')}
-              </div>
+              <div className="label">Total</div>
+              <div className="figure text-[24px]">₦{totalNaira.toLocaleString('en-NG')}</div>
             </div>
           </div>
         </section>
 
-        <section className="rounded-xl border bg-card/80 p-5 backdrop-blur">
-          <h2 className="mb-3 font-semibold">Message to customer (optional)</h2>
+        <section className="card p-6">
+          <label htmlFor="customMessage" className="section-title">
+            Message to the customer <span className="font-normal text-muted-foreground">· optional</span>
+          </label>
           <textarea
+            id="customMessage"
             name="customMessage"
             defaultValue={proposal.customMessage}
             rows={3}
             placeholder="Thanks for using our calculator — here's your formal quote…"
-            className="input min-h-[80px] py-2"
+            className="input mt-3 min-h-[96px] leading-relaxed"
           />
         </section>
 
         <div className="flex flex-wrap items-center gap-3">
           <SaveButton />
-          {state.success && <span className="text-xs text-primary">Saved ✓</span>}
-          {state.error && <span className="text-xs text-destructive">{state.error}</span>}
+          {state.success && <span className="text-[13px] text-success">Saved</span>}
+          {state.error && <span className="text-[13px] text-destructive">{state.error}</span>}
         </div>
       </form>
 
-      <section className="rounded-xl border border-primary/40 bg-primary/5 p-5 backdrop-blur">
-        <h2 className="font-semibold">Deliver</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Save your changes first — sending marks the proposal as sent, updates the
-          lead, and emails {proposal.customerEmail} a link when email is configured.
+      <section className="card p-6" aria-labelledby="deliver">
+        <h2 id="deliver" className="section-title">
+          Send it
+        </h2>
+        <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
+          Save your changes first. Sending marks the proposal as sent, moves the lead
+          along, and emails {proposal.customerEmail} a link when email is set up.
         </p>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
           <form action={sendProposalAction}>
             <input type="hidden" name="id" value={proposal.id} />
             <SendButton alreadySent={proposal.status !== 'DRAFT'} />
@@ -173,14 +178,14 @@ export function ProposalEditor({
             href={`/api/proposals/${proposal.id}/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-10 items-center gap-2 rounded-md border bg-background/40 px-4 text-sm font-medium backdrop-blur transition-colors hover:bg-secondary"
+            className="btn btn-secondary"
           >
             <Download className="h-4 w-4" /> Download PDF
           </a>
-          <div className="flex items-center gap-2 rounded-md border bg-secondary/40 px-3 py-2 font-mono text-xs">
-            <span className="max-w-[220px] truncate">{publicUrl}</span>
-            <CopyLink url={publicUrl} />
-          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2 rounded-xl bg-secondary py-1.5 pl-3.5 pr-1.5">
+          <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">{publicUrl}</span>
+          <CopyLink url={publicUrl} />
         </div>
       </section>
     </div>
@@ -190,11 +195,7 @@ export function ProposalEditor({
 function SaveButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="signup-gradient-hover glass-button inline-flex h-10 items-center rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60"
-    >
+    <button type="submit" disabled={pending} className="btn btn-secondary">
       {pending ? 'Saving…' : 'Save proposal'}
     </button>
   );
@@ -206,9 +207,7 @@ function SendButton({ alreadySent }: { alreadySent: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className={cn(
-        'signup-gradient-hover glass-button inline-flex h-10 items-center gap-2 rounded-md px-5 text-sm font-medium text-foreground transition-all duration-200 disabled:opacity-60',
-      )}
+      className="btn btn-primary"
     >
       <Send className="h-4 w-4" />
       {pending ? 'Sending…' : alreadySent ? 'Resend to customer' : 'Send to customer'}

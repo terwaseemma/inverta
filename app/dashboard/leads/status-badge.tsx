@@ -1,22 +1,21 @@
 import { cn } from '@/lib/utils';
 import { LEAD_STATUS_LABELS } from '@/lib/lead-utils';
 
-const STYLES: Record<string, string> = {
-  NEW: 'bg-primary/15 text-primary border-primary/30',
-  VIEWED: 'bg-secondary text-secondary-foreground border-border',
-  PROPOSAL_SENT: 'bg-accent/15 text-accent border-accent/30',
-  CONVERTED: 'bg-green-500/15 text-green-500 border-green-500/30',
-  LOST: 'bg-destructive/10 text-destructive border-destructive/30',
+// The dot carries the state; the word stays in ink so it reads at full
+// contrast on both themes. Orange is reserved for New — the one stage that
+// asks the owner to act.
+const DOT: Record<string, string> = {
+  NEW: 'bg-primary',
+  VIEWED: 'bg-muted-foreground/60',
+  PROPOSAL_SENT: 'bg-sky-500',
+  CONVERTED: 'bg-success',
+  LOST: 'bg-destructive/70',
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, className }: { status: string; className?: string }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
-        STYLES[status] ?? STYLES.VIEWED,
-      )}
-    >
+    <span className={cn('chip shrink-0 bg-card text-foreground', className)}>
+      <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', DOT[status] ?? DOT.VIEWED)} />
       {LEAD_STATUS_LABELS[status] ?? status}
     </span>
   );

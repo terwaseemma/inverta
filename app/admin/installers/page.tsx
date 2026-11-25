@@ -26,33 +26,33 @@ export default async function AdminInstallersPage() {
   });
 
   return (
-    <div className="container max-w-5xl py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Installers</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="page-title">Installers</h1>
+        <p className="page-lead">
           Every account on the platform. The power button deactivates an
           installer&apos;s public calculator without touching their data.
         </p>
       </div>
 
-      <div className="divide-y rounded-xl border bg-card/80 backdrop-blur">
+      <div className="card divide-y">
         {installers.map((inst) => (
           <div key={inst.id} className="flex flex-wrap items-center gap-3 px-5 py-4">
             <div className="min-w-[200px] flex-1">
               <div className="text-sm font-medium">
                 {inst.businessName}
                 {inst.role === 'ADMIN' && (
-                  <span className="ml-2 rounded-full border border-primary/40 bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                  <span className="ml-2 chip border-primary/40 bg-primary/10 text-foreground">
                     Admin
                   </span>
                 )}
                 {!inst.onboardedAt && (
-                  <span className="ml-2 rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground">
+                  <span className="ml-2 rounded-full border px-2 py-0.5 text-[13px] text-muted-foreground">
                     Not onboarded
                   </span>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[13px] text-muted-foreground">
                 {inst.email} · {inst.region} · joined{' '}
                 {inst.createdAt.toLocaleDateString('en-NG', {
                   day: 'numeric',
@@ -62,7 +62,7 @@ export default async function AdminInstallersPage() {
               </div>
             </div>
 
-            <div className="font-mono text-xs text-muted-foreground">
+            <div className="figure text-[13px] text-muted-foreground">
               {inst._count.leads} leads · {inst._count.proposals} proposals ·{' '}
               {inst._count.catalogItems} products
             </div>
@@ -94,10 +94,8 @@ export default async function AdminInstallersPage() {
                         : 'Calculator disabled — click to activate'
                     }
                     className={cn(
-                      'grid h-8 w-8 place-items-center rounded-md transition-colors',
-                      inst.calculatorLink.isActive
-                        ? 'text-green-500 hover:bg-muted'
-                        : 'text-destructive hover:bg-muted',
+                      'btn btn-ghost h-10 w-10 px-0',
+                      inst.calculatorLink.isActive ? 'text-success' : 'text-destructive',
                     )}
                   >
                     <Power className="h-3.5 w-3.5" />
