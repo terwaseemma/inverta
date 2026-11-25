@@ -17,9 +17,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen lg:flex">
       <PostHogIdentify
-        installerId={installer.id}
-        email={email}
-        businessName={installer.businessName}
+        distinctId={installer.id}
+        properties={{
+          role: 'owner',
+          email,
+          business_name: installer.businessName,
+          business_type: installer.businessType,
+          region: installer.region,
+        }}
       />
 
       {/* Phone and tablet: slim bar, drawer for the nav. */}

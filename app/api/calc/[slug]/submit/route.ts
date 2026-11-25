@@ -1,3 +1,4 @@
+import { captureServer, nairaBand } from '@/lib/analytics-server';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
@@ -185,6 +186,31 @@ export async function POST(
   } catch {
     // swallow — the lead is already saved
   }
+
+  // Sizes and a rounded price band only: never the customer's details.
+  const r = result as unknown as {
+    pricing?: { totalKobo?: number } | null;
+    inverter?: { capacityKva?: number } | null;
+    batteries?: { totalCapacityKwh?: number } | null;
+    panels?: { totalKwp?: number } | null;
+    generator?: { capacityKva?: number } | null;
+    totalLoadW?: number;
+    dailyEnergyWh?: number;
+  };
+  await captureServer('lead_created', installer.id, {
+    via_marketer: Boolean(marketer),
+    has_price: Boolean(r.pricing?.totalKobo),
+    price_naira_band: nairaBand(r.pricing?.totalKobo),
+    system_type: r.generator?.capacityKva ? 'all_in_one' : 'separate',
+    inverter_kva: r.generator?.capacityKva ?? r.inverter?.capacityKva ?? null,
+    battery_kwh: r.batteries?.totalCapacityKwh ?? null,
+    panel_kwp: r.panels?.totalKwp ?? null,
+    load_w: r.totalLoadW ?? null,
+    daily_kwh: r.dailyEnergyWh != null ? Math.round(r.dailyEnergyWh / 100) / 10 : null,
+    appliance_count: Array.isArray(data.appliances) ? data.appliances.length : null,
+    backup_hours: data.backupHours ?? null,
+    referral_source: data.referralSource ?? null,
+  });
 
   return NextResponse.json({
     leadId: lead.id,

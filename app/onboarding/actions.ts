@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { schemas, slugify } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
+import { captureServer } from '@/lib/analytics-server';
 import { sendWelcomeEmail } from '@/lib/notifications';
 import { copyItemsToInstaller, getActiveMasterItems } from '@/lib/master-catalog';
 
@@ -48,6 +49,10 @@ export async function saveProfileStepAction(
     },
   });
 
+  await captureServer('onboarding_step_completed', installer.id, {
+    step: 'profile',
+    has_logo: Boolean(parsed.data.logoUrl),
+  });
   redirect('/onboarding?step=2');
 }
 
@@ -61,10 +66,13 @@ export async function loadStarterCatalogStepAction(): Promise<void> {
   });
   if (existing === 0) {
     // Admin-curated platform catalog, or the built-in template until one exists.
-    await copyItemsToInstaller(installer.id, await getActiveMasterItems());
+    const items = await getActiveMasterItems();
+    await copyItemsToInstaller(installer.id, items);
     revalidatePath('/dashboard/catalog');
+    await captureServer('starter_catalog_loaded', installer.id, { where: 'onboarding', items: items.length });
   }
 
+  await captureServer('onboarding_step_completed', installer.id, { step: 'catalog' });
   redirect('/onboarding?step=3');
 }
 
@@ -91,6 +99,10 @@ export async function savePaymentStepAction(
     },
   });
 
+  await captureServer('onboarding_step_completed', installer.id, {
+    step: 'payment',
+    has_bank: Boolean(parsed.data.bankAccountNumber),
+  });
   redirect('/onboarding?step=4');
 }
 
@@ -144,5 +156,7 @@ export async function finishOnboardingAction(
     // non-fatal
   }
 
+  await captureServer('onboarding_step_completed', installer.id, { step: 'link' });
+  await captureServer('onboarding_completed', installer.id, { slug_changed: slug !== installer.slug });
   redirect('/dashboard');
 }

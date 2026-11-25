@@ -9,6 +9,7 @@ import { compactNaira, lagosDayKey, lagosHour, relativeTime, shortDate } from '@
 import { PageShell } from '@/components/app/page';
 import { cn } from '@/lib/utils';
 import { CopyLink } from './copy-button';
+import { TrackedLink } from '@/components/analytics/TrackedLink';
 import { StatusBadge } from './leads/status-badge';
 
 export const metadata = { title: 'Dashboard · Inverta' };
@@ -370,8 +371,10 @@ function CalculatorCard({
       </div>
       <div className="mt-3 truncate text-[15px] font-medium">{url.replace(/^https?:\/\//, '')}</div>
       <div className="mt-3 flex gap-2">
-        <CopyLink url={url} className="border-transparent bg-white/90 text-[hsl(24_40%_8%)] hover:bg-white" />
-        <a
+        <CopyLink url={url} what="calculator" className="border-transparent bg-white/90 text-[hsl(24_40%_8%)] hover:bg-white" />
+        <TrackedLink
+          event="link_shared"
+          eventProps={{ what: 'calculator', channel: 'whatsapp' }}
           href={whatsappHref(
             `Get a free instant solar quote from ${businessName} — see the system you need and the price in 2 minutes: ${url}`,
           )}
@@ -380,7 +383,7 @@ function CalculatorCard({
           className="btn btn-sm bg-[hsl(24_40%_8%)] text-white hover:bg-[hsl(24_40%_14%)]"
         >
           <MessageCircle className="h-3.5 w-3.5" /> Share
-        </a>
+        </TrackedLink>
       </div>
     </div>
   );

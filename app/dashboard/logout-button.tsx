@@ -3,6 +3,7 @@
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
+import { resetAnalytics } from '@/lib/analytics';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 // Icon-only sign-out, sized as a full 40px target, named for screen readers.
@@ -12,6 +13,9 @@ export function LogoutButton() {
 
   function logout() {
     startTransition(async () => {
+      // Forget this person in analytics first, so whoever signs in next on
+      // this device is not merged with them.
+      await resetAnalytics();
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
       router.push('/login');

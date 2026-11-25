@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Mail, MessageCircle, Phone, ShoppingBag } from 'lucide-react';
 import { formatKobo } from '@inverta/shared';
-import { prisma } from '@/lib/prisma';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { shareMetadata, storeShare } from '@/lib/og/share-copy';
+import { getStorefrontInstaller, getStorefrontProducts } from '@/lib/public-data';
+import { TrackedLink } from '@/components/analytics/TrackedLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,24 +25,11 @@ export default async function StorefrontPage({
 }: {
   params: { slug: string };
 }) {
-  const installer = await prisma.installer.findUnique({
-    where: { slug: params.slug },
-    select: {
-      id: true,
-      businessName: true,
-      logoUrl: true,
-      bio: true,
-      phone: true,
-      email: true,
-      calculatorLink: { select: { slug: true, isActive: true } },
-    },
-  });
+  // Shared with generateMetadata (lib/public-data): one query each per request.
+  const installer = await getStorefrontInstaller(params.slug);
   if (!installer) notFound();
 
-  const products = await prisma.product.findMany({
-    where: { installerId: installer.id, isAvailable: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  const products = await getStorefrontProducts(installer.id);
 
   const whatsapp = installer.phone.replace(/[^0-9]/g, '');
 
@@ -128,7 +116,9 @@ export default async function StorefrontPage({
                   <div className="mt-auto flex items-center justify-between gap-3 pt-5">
                     <span className="figure text-[20px]">{formatKobo(p.priceKobo)}</span>
                     {whatsapp && (
-                      <a
+                      <TrackedLink
+                        event="store_enquiry_clicked"
+                        eventProps={{ store: params.slug, type: p.type.toLowerCase() }}
                         href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(
                           `Hi, I'm interested in the ${p.name} listed on your store.`,
                         )}`}
@@ -138,7 +128,7 @@ export default async function StorefrontPage({
                         aria-label={`Ask about ${p.name} on WhatsApp`}
                       >
                         <MessageCircle className="h-4 w-4" /> Enquire
-                      </a>
+                      </TrackedLink>
                     )}
                   </div>
                 </div>

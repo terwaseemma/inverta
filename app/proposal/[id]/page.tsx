@@ -3,6 +3,8 @@ import { Download, Globe, Mail, MessageCircle, Phone } from 'lucide-react';
 import { formatKobo } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { notifyProposalViewed } from '@/lib/notifications';
+import { captureServer, nairaBand } from '@/lib/analytics-server';
+import { TrackedLink } from '@/components/analytics/TrackedLink';
 
 export const metadata = { title: 'Your solar proposal · Inverta' };
 export const dynamic = 'force-dynamic';
@@ -51,6 +53,13 @@ export default async function PublicProposalPage({
     } catch {
       // non-fatal
     }
+    // Once, on the first open after sending: hours from send to open.
+    await captureServer('proposal_viewed', proposal.installerId, {
+      hours_to_view: proposal.sentAt
+        ? Math.round((Date.now() - proposal.sentAt.getTime()) / 36e5)
+        : null,
+      price_naira_band: nairaBand(proposal.totalKobo),
+    });
   }
 
   const installer = proposal.installer;
@@ -176,7 +185,9 @@ export default async function PublicProposalPage({
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             {waNumber && (
-              <a
+              <TrackedLink
+                event="proposal_accept_clicked"
+                eventProps={{ channel: 'whatsapp', price_naira_band: Math.round(proposal.totalKobo / 100 / 1000) * 1000 }}
                 href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
                   `Hi ${installer.businessName}, I've read my solar proposal (${formatKobo(proposal.totalKobo)}) and I'd like to go ahead.`,
                 )}`}
@@ -185,16 +196,17 @@ export default async function PublicProposalPage({
                 className="btn btn-primary"
               >
                 <MessageCircle className="h-4 w-4" /> Go ahead on WhatsApp
-              </a>
+              </TrackedLink>
             )}
-            <a
+            <TrackedLink
+              event="proposal_pdf_downloaded"
               href={`/api/proposals/${proposal.id}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-secondary"
             >
               <Download className="h-4 w-4" /> Download PDF
-            </a>
+            </TrackedLink>
           </div>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-[15px]">
             <a href={`tel:${installer.phone}`} className="link inline-flex items-center gap-1.5">

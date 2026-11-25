@@ -50,6 +50,10 @@ export function Hero() {
             alt="The Inverta solar calculator on a phone, showing a customer's appliance list and quote"
             width={1200}
             height={900}
+            // The image is scaled up 1.25–1.65× inside its column, so ask for
+            // a little more than the column; without sizes the browser picks
+            // the 3840px file.
+            sizes="(min-width: 768px) 75vw, 160vw"
             /* Mobile offset is -50px, not the -110px the other breakpoints
                scale from: the phone in the PNG sits ~60% across its canvas
                (the left third is just background glow), so centring the

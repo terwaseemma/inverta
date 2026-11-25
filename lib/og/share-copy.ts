@@ -1,7 +1,6 @@
 import 'server-only';
 
-import { normalizeMemberCode } from '@inverta/shared';
-import { prisma } from '@/lib/prisma';
+import { getActiveMarketer, getCalculatorLink, getStorefrontInstaller, getStorefrontProducts } from '@/lib/public-data';
 import { getAppUrl } from '@/lib/app-url';
 import type { ShareCardProps } from './share-card';
 
@@ -22,21 +21,10 @@ export type ShareCopy = {
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
-async function findInstallerBySlug(slug: string) {
-  return prisma.installer.findUnique({
-    where: { slug },
-    select: { id: true, businessName: true, logoUrl: true, region: true },
-  });
-}
-
+// Shared with the pages themselves (lib/public-data), so the preview tags
+// cost no extra queries.
 async function findCalculator(slug: string) {
-  const link = await prisma.calculatorLink.findUnique({
-    where: { slug },
-    select: {
-      isActive: true,
-      installer: { select: { id: true, businessName: true, logoUrl: true, region: true } },
-    },
-  });
+  const link = await getCalculatorLink(slug);
   return link?.isActive ? link.installer : null;
 }
 
@@ -65,13 +53,7 @@ export async function calculatorShare(slug: string): Promise<ShareCopy> {
 export async function marketerShare(slug: string, code: string): Promise<ShareCopy> {
   const installer = await findCalculator(slug);
   if (!installer) return fallbackShare();
-  const normalized = normalizeMemberCode(code);
-  const marketer = normalized
-    ? await prisma.member.findFirst({
-        where: { code: normalized, installerId: installer.id, role: 'MARKETER', isActive: true },
-        select: { name: true },
-      })
-    : null;
+  const marketer = await getActiveMarketer(installer.id, code);
   // An unknown code still gets the installer's own preview — the link works.
   if (!marketer) return calculatorShare(slug);
 
@@ -93,11 +75,9 @@ export async function marketerShare(slug: string, code: string): Promise<ShareCo
 
 /** /store/<slug> — the installer's storefront. */
 export async function storeShare(slug: string): Promise<ShareCopy> {
-  const installer = await findInstallerBySlug(slug);
+  const installer = await getStorefrontInstaller(slug);
   if (!installer) return fallbackShare();
-  const count = await prisma.product.count({
-    where: { installerId: installer.id, isAvailable: true },
-  });
+  const count = (await getStorefrontProducts(installer.id)).length;
   const name = installer.businessName;
   return {
     title: `${name} — Solar store`,

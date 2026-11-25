@@ -185,7 +185,7 @@ export function ProposalEditor({
         </div>
         <div className="mt-4 flex items-center gap-2 rounded-xl bg-secondary py-1.5 pl-3.5 pr-1.5">
           <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">{publicUrl}</span>
-          <CopyLink url={publicUrl} />
+          <CopyLink url={publicUrl} what="proposal" />
         </div>
       </section>
     </div>

@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { schemas } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
+import { captureServer } from '@/lib/analytics-server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export interface JoinFormState {
@@ -88,6 +89,9 @@ export async function acceptInviteAction(
   if (claimed.count === 0) {
     return { error: 'This invite was just used. Try signing in instead.' };
   }
+
+  // On the account's own id, so it shows in the owner's team activity.
+  await captureServer('member_joined', seat.installerId, { role: seat.role.toLowerCase() });
 
   if (authData.session) redirect('/team');
   redirect('/verify-email?for=team');

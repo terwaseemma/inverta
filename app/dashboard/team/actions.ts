@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { memberCodeFrom, schemas } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireOnboardedInstaller } from '@/lib/auth';
+import { captureServer } from '@/lib/analytics-server';
 import { getAppUrl } from '@/lib/app-url';
 import { sendTeamInviteEmail } from '@/lib/notifications';
 
@@ -127,6 +128,7 @@ export async function inviteMemberAction(
     console.error('[team] invite email failed:', err);
   }
 
+  await captureServer('member_invited', installer.id, { role: 'marketer', has_phone: Boolean(phone) });
   revalidatePath('/dashboard/team');
   return { success: true, inviteUrl, invitedName: name };
 }
@@ -146,6 +148,7 @@ export async function setMemberActiveAction(formData: FormData): Promise<void> {
     where: { id, installerId: installer.id, role: 'MARKETER' },
     data: { isActive: active },
   });
+  await captureServer('member_access_changed', installer.id, { active });
   revalidatePath('/dashboard/team');
 }
 
@@ -174,5 +177,6 @@ export async function revokeInviteAction(formData: FormData): Promise<void> {
       data: { inviteToken: null, isActive: false },
     });
   }
+  await captureServer('invite_revoked', installer.id, { had_leads: pending._count.leads > 0 });
   revalidatePath('/dashboard/team');
 }

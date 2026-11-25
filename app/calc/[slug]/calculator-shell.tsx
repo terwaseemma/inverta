@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { prisma } from '@/lib/prisma';
-import { APPLIANCE_PRESETS, normalizeMemberCode } from '@inverta/shared';
+import { APPLIANCE_PRESETS } from '@inverta/shared';
+import { getActiveMarketer, getCalculatorLink } from '@/lib/public-data';
 import { Calculator } from './calculator';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -20,32 +20,12 @@ export async function CalculatorShell({
   slug: string;
   memberCode?: string;
 }) {
-  const link = await prisma.calculatorLink.findUnique({
-    where: { slug },
-    include: {
-      installer: {
-        select: {
-          id: true,
-          businessName: true,
-          slug: true,
-          logoUrl: true,
-          region: true,
-          phone: true,
-          email: true,
-        },
-      },
-    },
-  });
+  // Shared with generateMetadata (lib/public-data): one query each per request.
+  const link = await getCalculatorLink(slug);
 
   if (!link || !link.isActive || !link.installer) notFound();
 
-  const code = normalizeMemberCode(memberCode);
-  const marketer = code
-    ? await prisma.member.findFirst({
-        where: { code, installerId: link.installer.id, role: 'MARKETER', isActive: true },
-        select: { name: true, code: true },
-      })
-    : null;
+  const marketer = await getActiveMarketer(link.installer.id, memberCode);
 
   const initial = link.installer.businessName.trim()[0]?.toUpperCase() ?? 'S';
 

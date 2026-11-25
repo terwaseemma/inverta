@@ -3,6 +3,7 @@
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
+import { resetAnalytics } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 
 // Sign-out for pages outside the dashboard chrome. The dashboard keeps its own
@@ -13,6 +14,9 @@ export function SignOutButton({ className }: { className?: string }) {
 
   function signOut() {
     startTransition(async () => {
+      // Forget this person in analytics first, so whoever signs in next on
+      // this device is not merged with them.
+      await resetAnalytics();
       const { createSupabaseBrowserClient } = await import('@/lib/supabase/client');
       await createSupabaseBrowserClient().auth.signOut();
       router.push('/login');

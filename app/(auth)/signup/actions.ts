@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { captureServer } from '@/lib/analytics-server';
 import { schemas, slugify } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -99,7 +100,7 @@ export async function signupAction(
     slug = `${baseSlug}-${i}`;
   }
 
-  await prisma.installer.create({
+  const installer = await prisma.installer.create({
     data: {
       authUserId: authData.user.id,
       businessName: data.businessName,
@@ -122,6 +123,12 @@ export async function signupAction(
         },
       },
     },
+  });
+
+  await captureServer('installer_signed_up', installer.id, {
+    business_type: data.businessType,
+    region: data.region,
+    needs_email_confirmation: !authData.session,
   });
 
   // If Supabase email confirmation is disabled, signUp returns a session

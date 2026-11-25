@@ -6,6 +6,7 @@ import { MessageCircle, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { whatsappHref } from '@/lib/whatsapp';
 import { CopyLink } from '../copy-button';
+import { TrackedLink } from '@/components/analytics/TrackedLink';
 import { inviteMemberAction, type TeamFormState } from './actions';
 
 const initial: TeamFormState = {};
@@ -52,8 +53,10 @@ export function InviteForm({ businessName }: { businessName: string }) {
             <code className="min-w-0 flex-1 truncate rounded-lg bg-secondary px-2 py-1 font-mono text-[13px]">
               {state.inviteUrl}
             </code>
-            <CopyLink url={state.inviteUrl} />
-            <a
+            <CopyLink url={state.inviteUrl} what="invite" />
+            <TrackedLink
+              event="link_shared"
+              eventProps={{ what: 'invite', channel: 'whatsapp' }}
               href={whatsappHref(
                 `Hi ${state.invitedName?.split(' ')[0] ?? ''}, join the ${businessName} sales team on Inverta and get your own solar quote link: ${state.inviteUrl}`,
               )}
@@ -62,7 +65,7 @@ export function InviteForm({ businessName }: { businessName: string }) {
               className="btn btn-secondary btn-sm"
             >
               <MessageCircle className="h-3 w-3" /> WhatsApp
-            </a>
+            </TrackedLink>
           </div>
         </div>
       )}

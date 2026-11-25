@@ -33,10 +33,11 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Run on every page request EXCEPT static files, _next internals, and the
+    // Run on every page request EXCEPT what never needs a session: the
+    // homepage (`.+` skips "/"), _next internals, any static file by
+    // extension, generated link-preview images, the PostHog proxy, and the
     // public surfaces (calculator, storefront, customer proposal view, and
-    // their API routes) — those don't need a session and skipping the
-    // Supabase roundtrip keeps them fast.
-    '/((?!_next/static|_next/image|favicon.ico|icon.png|wordmark.png|appliances/|calc/|store/|proposal/|installers|about|api/calc/|api/proposals/).*)',
+    // their API routes). Each skip saves a round trip to Supabase Auth.
+    '/((?!_next/static|_next/image|ingest/|calc/|store/|proposal/|installers|about|api/calc/|api/proposals/|opengraph-image|.*\\.(?:png|jpe?g|gif|svg|webp|avif|ico|txt|xml|webmanifest)$).+)',
   ],
 };

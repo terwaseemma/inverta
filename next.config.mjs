@@ -7,6 +7,8 @@ const posthogAssets = posthogHost.replace('.i.posthog.com', '-assets.i.posthog.c
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // AVIF first (smaller than WebP), WebP for browsers without it.
+  images: { formats: ['image/avif', 'image/webp'] },
   // Compile the shared + db packages from source; no prebuild step needed in dev.
   transpilePackages: ['@inverta/shared', '@inverta/db'],
   experimental: {

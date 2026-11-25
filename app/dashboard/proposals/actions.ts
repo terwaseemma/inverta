@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { schemas, nairaToKobo } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
+import { captureServer, nairaBand } from '@/lib/analytics-server';
 import { sendEmail } from '@/lib/email';
 import { emailLayout, escapeHtml } from '@/lib/email-template';
 import { getAppUrl } from '@/lib/app-url';
@@ -111,6 +112,11 @@ export async function createProposalFromLeadAction(formData: FormData): Promise<
     },
   });
 
+  await captureServer('proposal_created', installer.id, {
+    line_items: items.length,
+    price_naira_band: nairaBand(totalKobo),
+    via_marketer: Boolean(lead.sourcedByMemberId),
+  });
   revalidatePath('/dashboard/proposals');
   revalidatePath(`/dashboard/leads/${lead.id}`);
   redirect(`/dashboard/proposals/${proposal.id}`);
@@ -184,9 +190,10 @@ export async function sendProposalAction(formData: FormData): Promise<void> {
 
   const proposal = await prisma.proposal.findFirst({
     where: { id, installerId: installer.id },
-    include: { lead: true },
+    include: { lead: true, _count: { select: { items: true } } },
   });
   if (!proposal) return;
+  const resend = proposal.status !== 'DRAFT';
 
   await prisma.$transaction([
     prisma.proposal.update({
@@ -218,6 +225,12 @@ export async function sendProposalAction(formData: FormData): Promise<void> {
     }),
   });
 
+  await captureServer('proposal_sent', installer.id, {
+    resend,
+    line_items: proposal._count.items,
+    price_naira_band: nairaBand(proposal.totalKobo),
+    via_marketer: Boolean(proposal.lead.sourcedByMemberId),
+  });
   revalidatePath(`/dashboard/proposals/${id}`);
   revalidatePath('/dashboard/proposals');
   revalidatePath(`/dashboard/leads/${proposal.leadId}`);
@@ -229,7 +242,8 @@ export async function deleteProposalAction(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
-  await prisma.proposal.deleteMany({ where: { id, installerId: installer.id } });
+  const { count } = await prisma.proposal.deleteMany({ where: { id, installerId: installer.id } });
+  if (count > 0) await captureServer('proposal_deleted', installer.id);
   revalidatePath('/dashboard/proposals');
   redirect('/dashboard/proposals');
 }

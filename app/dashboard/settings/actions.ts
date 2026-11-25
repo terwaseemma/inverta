@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { schemas, nairaToKobo, slugify } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
+import { captureServer } from '@/lib/analytics-server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
@@ -62,6 +63,11 @@ export async function saveProfileAction(
     },
   });
 
+  await captureServer('settings_saved', installer.id, {
+    section: 'profile',
+    has_logo: Boolean(d.logoUrl),
+    region: d.region,
+  });
   revalidatePath('/dashboard/settings');
   revalidatePath('/dashboard');
   return { success: true };
@@ -91,6 +97,11 @@ export async function savePricingAction(
     },
   });
 
+  await captureServer('settings_saved', installer.id, {
+    section: 'installation_fee',
+    fee_mode: d.feeMode,
+    fee_percent: d.feeMode === 'percent' ? Math.round(d.installationFeePercent ?? 0) : null,
+  });
   revalidatePath('/dashboard/settings');
   return { success: true };
 }
@@ -118,6 +129,10 @@ export async function savePaymentAction(
     },
   });
 
+  await captureServer('settings_saved', installer.id, {
+    section: 'payment',
+    has_bank: Boolean(d.bankAccountNumber),
+  });
   revalidatePath('/dashboard/settings');
   return { success: true };
 }
@@ -163,6 +178,10 @@ export async function saveCalculatorLinkAction(
     }),
   ]);
 
+  await captureServer('calculator_link_saved', installer.id, {
+    slug_changed: slug !== installer.slug,
+    is_active: isActive,
+  });
   revalidatePath('/dashboard/settings');
   revalidatePath('/dashboard');
   return { success: true };
@@ -189,6 +208,7 @@ export async function deleteAccountAction(
   });
 
   await prisma.installer.delete({ where: { id: installer.id } });
+  await captureServer('account_deleted', installer.id, { team_logins: teamLogins.length });
 
   // Owner first, then every marketer. A marketer login left behind would be
   // signed in to an account that no longer exists.

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { schemas, nairaToKobo } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
+import { captureServer } from '@/lib/analytics-server';
 
 export interface ProductFormState {
   error?: string;
@@ -61,6 +62,12 @@ export async function saveProductAction(
     await prisma.product.create({ data: { ...data, installerId: installer.id } });
   }
 
+  await captureServer('store_product_saved', installer.id, {
+    action: typeof id === 'string' && id ? 'updated' : 'added',
+    type: d.type.toLowerCase(),
+    is_available: d.isAvailable,
+    has_image: Boolean(d.imageUrl),
+  });
   revalidatePath('/dashboard/store');
   return { success: true };
 }
@@ -70,6 +77,7 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
-  await prisma.product.deleteMany({ where: { id, installerId: installer.id } });
+  const { count } = await prisma.product.deleteMany({ where: { id, installerId: installer.id } });
+  if (count > 0) await captureServer('store_product_deleted', installer.id);
   revalidatePath('/dashboard/store');
 }

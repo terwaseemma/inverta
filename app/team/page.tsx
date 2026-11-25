@@ -6,6 +6,7 @@ import { getAppUrl } from '@/lib/app-url';
 import { whatsappHref } from '@/lib/whatsapp';
 import { parseResultSnapshot, systemSummary } from '@/lib/lead-utils';
 import { CopyLink } from '@/app/dashboard/copy-button';
+import { TrackedLink } from '@/components/analytics/TrackedLink';
 import { StatusBadge } from '@/app/dashboard/leads/status-badge';
 
 export const metadata = { title: 'My leads · Inverta' };
@@ -43,7 +44,9 @@ export default async function TeamHomePage() {
           <div className="text-[13px] font-medium opacity-80">Your quote link</div>
           <div className="mt-2 truncate text-[17px] font-semibold">{myLink.replace(/^https?:\/\//, '')}</div>
           <div className="mt-5 flex gap-2">
-            <a
+            <TrackedLink
+              event="link_shared"
+              eventProps={{ what: 'marketer_link', channel: 'whatsapp', by: 'marketer' }}
               href={whatsappHref(
                 `Thinking about solar? Get a free instant quote from ${installer.businessName} — see the system you need and the price in 2 minutes: ${myLink}`,
               )}
@@ -52,8 +55,8 @@ export default async function TeamHomePage() {
               className="btn min-w-0 flex-1 bg-[hsl(24_40%_8%)] text-white hover:bg-[hsl(24_40%_14%)] sm:flex-none"
             >
               <MessageCircle className="h-4 w-4" /> Share on WhatsApp
-            </a>
-            <CopyLink url={myLink} className="h-11 shrink-0 border-transparent bg-white/90 px-5 text-[15px] text-[hsl(24_40%_8%)] hover:bg-white" />
+            </TrackedLink>
+            <CopyLink url={myLink} what="marketer_link" className="h-11 shrink-0 border-transparent bg-white/90 px-5 text-[15px] text-[hsl(24_40%_8%)] hover:bg-white" />
           </div>
         </section>
       ) : (

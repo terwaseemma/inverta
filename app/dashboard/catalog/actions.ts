@@ -5,6 +5,7 @@ import { schemas, applyMargin, nairaToKobo, stripWholesaleNote } from '@inverta/
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
 import { copyItemsToInstaller, getActiveMasterItems } from '@/lib/master-catalog';
+import { captureServer } from '@/lib/analytics-server';
 
 export interface CatalogFormState {
   error?: string;
@@ -83,6 +84,11 @@ export async function saveCatalogItemAction(
     });
   }
 
+  await captureServer('catalog_item_saved', installer.id, {
+    action: id ? 'updated' : 'added',
+    type: d.type.toLowerCase(),
+    brand: d.brand,
+  });
   revalidatePath('/dashboard/catalog');
   revalidatePath('/dashboard');
   return { success: true };
@@ -94,9 +100,10 @@ export async function deleteCatalogItemAction(formData: FormData): Promise<void>
   if (!id) return;
 
   // deleteMany so a forged id belonging to another tenant silently no-ops.
-  await prisma.catalogItem.deleteMany({
+  const { count } = await prisma.catalogItem.deleteMany({
     where: { id, installerId: installer.id },
   });
+  if (count > 0) await captureServer('catalog_item_deleted', installer.id);
 
   revalidatePath('/dashboard/catalog');
   revalidatePath('/dashboard');
@@ -116,7 +123,9 @@ export async function loadStarterCatalogAction(
   }
 
   // Admin-curated platform catalog, or the built-in template until one exists.
-  await copyItemsToInstaller(installer.id, await getActiveMasterItems());
+  const items = await getActiveMasterItems();
+  await copyItemsToInstaller(installer.id, items);
+  await captureServer('starter_catalog_loaded', installer.id, { where: 'catalog', items: items.length });
 
   revalidatePath('/dashboard/catalog');
   revalidatePath('/dashboard');
@@ -183,6 +192,12 @@ export async function importMasterItemAction(
     },
   });
 
+  await captureServer('platform_product_imported', installer.id, {
+    type: master.type.toLowerCase(),
+    brand: master.brand,
+    margin_mode: parsed.data.marginMode,
+    margin_percent: parsed.data.marginMode === 'percent' ? parsed.data.marginPercent : null,
+  });
   revalidatePath('/dashboard/catalog');
   revalidatePath('/dashboard');
   return { success: true };

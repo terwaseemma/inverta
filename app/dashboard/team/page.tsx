@@ -7,6 +7,7 @@ import { whatsappHref } from '@/lib/whatsapp';
 import { cn } from '@/lib/utils';
 import { PageHeader, PageShell } from '@/components/app/page';
 import { CopyLink } from '../copy-button';
+import { TrackedLink } from '@/components/analytics/TrackedLink';
 import { InviteForm } from './team-forms';
 import { revokeInviteAction, setMemberActiveAction } from './actions';
 
@@ -179,16 +180,18 @@ function LinkRow({ label, url, whatsapp }: { label: string; url: string; whatsap
       <code className="min-w-0 flex-1 truncate rounded-lg bg-secondary px-2 py-1 font-mono">
         {url}
       </code>
-      <CopyLink url={url} />
+      <CopyLink url={url} what="marketer_link" />
       {whatsapp && (
-        <a
+        <TrackedLink
+          event="link_shared"
+          eventProps={{ what: 'marketer_link', channel: 'whatsapp', by: 'owner' }}
           href={whatsappHref(whatsapp)}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-secondary btn-sm"
         >
           <MessageCircle className="h-3 w-3" /> WhatsApp
-        </a>
+        </TrackedLink>
       )}
     </div>
   );

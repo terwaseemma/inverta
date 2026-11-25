@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
@@ -27,8 +28,14 @@ export interface SessionContext {
   member: Member | null;
 }
 
-/** Resolve the Supabase user, their seat, and the account it belongs to. */
-export async function getCurrentInstaller(): Promise<SessionContext | null> {
+/**
+ * Resolve the Supabase user, their seat, and the account it belongs to.
+ *
+ * Wrapped in React cache(): the layout and the page both ask on every render,
+ * and each ask is a round trip to Supabase Auth plus the database. cache()
+ * makes it once per request (never shared across requests or users).
+ */
+export const getCurrentInstaller = cache(async function getCurrentInstaller(): Promise<SessionContext | null> {
   const supabase = createSupabaseServerClient();
   const {
     data: { user },
@@ -74,7 +81,7 @@ export async function getCurrentInstaller(): Promise<SessionContext | null> {
     // Healing is best-effort; the login still owns this installer.
     return { ...base, installer, member: null };
   }
-}
+});
 
 function isMarketer(ctx: SessionContext): boolean {
   return ctx.member?.role === 'MARKETER';

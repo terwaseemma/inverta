@@ -4,26 +4,15 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Battery,
-  Blend,
-  Cctv,
   Check,
   Clock,
-  Coffee,
   Info,
-  Lamp,
   Leaf,
   Mail,
   MessageCircle,
-  Microwave as MicrowaveIcon,
   Minus,
   Phone,
-  PlugZap,
-  Printer,
-  Router,
   Plus,
-  Shirt,
-  ShowerHead,
-  Speaker,
   Sun,
   Trash2,
   TrendingDown,
@@ -33,57 +22,8 @@ import {
 import type { AppliancePreset, CalculationResult } from '@inverta/shared';
 import { findPreset, formatKobo } from '@inverta/shared';
 import { cn } from '@/lib/utils';
-
-// Product-style images for each preset (in public/appliances/, sourced from
-// Icons8 — attribution link lives on the calculator page footer). Keyed by
-// the exact preset name from @inverta/shared APPLIANCE_PRESETS.
-const PRESET_IMAGES: Record<string, string> = {
-  'LED bulb': '/appliances/bulb.png',
-  'Ceiling fan': '/appliances/ceiling-fan.png',
-  'Standing fan': '/appliances/standing-fan.png',
-  'TV 32"': '/appliances/tv.png',
-  'TV 43"': '/appliances/tv.png',
-  'TV 55"': '/appliances/tv.png',
-  Refrigerator: '/appliances/fridge.png',
-  Freezer: '/appliances/freezer.png',
-  'Washing machine': '/appliances/washing-machine.png',
-  'AC 1HP': '/appliances/ac.png',
-  'AC 1.5HP': '/appliances/ac.png',
-  'AC 2HP': '/appliances/ac.png',
-  'Inverter AC 1.5HP': '/appliances/ac.png',
-  Laptop: '/appliances/laptop.png',
-  'Desktop computer': '/appliances/desktop.png',
-  'Phone charger': '/appliances/phone-charger.png',
-  'Water pump': '/appliances/water-pump.png',
-  'DSTV decoder': '/appliances/decoder.png',
-};
-
-// Full-colour product art where we have it; a neutral line glyph matched to
-// the appliance where we do not (never a generic bolt, and never orange — the
-// accent belongs to the actions on this page).
-const PRESET_GLYPHS: Record<string, LucideIcon> = {
-  'Security floodlight': Lamp,
-  Microwave: MicrowaveIcon,
-  'Electric kettle': Coffee,
-  Blender: Blend,
-  'Electric iron': Shirt,
-  'Water heater': ShowerHead,
-  'Sound system': Speaker,
-  'CCTV system': Cctv,
-  Printer: Printer,
-  'WiFi router': Router,
-};
-
-function ApplianceVisual({ name, className }: { name: string; className?: string }) {
-  const src = PRESET_IMAGES[name];
-  if (!src) {
-    const Glyph = PRESET_GLYPHS[name] ?? PlugZap;
-    return <Glyph aria-hidden className={cn('p-1 text-muted-foreground', className)} strokeWidth={1.6} />;
-  }
-  // Static 96px PNGs — plain <img> keeps them out of the image optimizer.
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" aria-hidden className={cn('object-contain', className)} />;
-}
+import { ApplianceIcon } from './appliance-icons';
+import { track } from '@/lib/analytics';
 
 type Step = 1 | 2 | 3;
 
@@ -161,7 +101,15 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
   }, [appliances]);
 
   if (response) {
-    return <Results data={response} onRestart={() => window.location.reload()} />;
+    return (
+      <Results
+        data={response}
+        onRestart={() => window.location.reload()}
+        onContact={(channel) =>
+          track('quote_contact_clicked', { channel, calculator: slug, via_marketer: Boolean(memberCode) })
+        }
+      />
+    );
   }
 
   async function onSubmit() {
@@ -195,14 +143,29 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError(body.error ?? 'Something went wrong. Please try again.');
+        track('quote_failed', { calculator: slug, status: res.status });
         return;
       }
       setResponse(await res.json());
+      trackStep('contact');
     } catch (err) {
       setError('Network error. Please try again.');
+      track('quote_failed', { calculator: slug, status: 'network' });
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // The funnel: which step people finish. No customer details, only shape.
+  function trackStep(name: 'appliances' | 'spending' | 'contact') {
+    track('calculator_step_completed', {
+      step: name,
+      calculator: slug,
+      via_marketer: Boolean(memberCode),
+      appliance_count: appliances.length,
+      backup_hours: backupHours,
+      gave_spending: Boolean(monthlyElectricityBill || monthlyFuelCost || generatorKva),
+    });
   }
 
   const canAdvance = validateStep(step, {
@@ -280,7 +243,10 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
             type="button"
             className="btn btn-primary min-w-[140px]"
             disabled={!canAdvance || submitting}
-            onClick={() => setStep((s) => (s + 1) as Step)}
+            onClick={() => {
+              trackStep(step === 1 ? 'appliances' : 'spending');
+              setStep((s) => (s + 1) as Step);
+            }}
           >
             Continue
           </button>
@@ -571,7 +537,15 @@ function Step2(props: {
                   {count}
                 </span>
               )}
-              <ApplianceVisual name={p.name} className="h-10 w-10" />
+              <span
+                aria-hidden
+                className={cn(
+                  'grid h-14 w-14 place-items-center rounded-2xl transition-colors duration-150',
+                  count > 0 ? 'bg-primary/15' : 'bg-secondary',
+                )}
+              >
+                <ApplianceIcon name={p.name} className="h-11 w-11" />
+              </span>
               <span className="text-[13px] font-medium leading-tight">{p.name}</span>
               <span className="text-[13px] tabular-nums text-muted-foreground">
                 {p.defaultWattageW} W
@@ -637,7 +611,7 @@ function Step2(props: {
               <li key={a.key} className="flex flex-wrap items-end gap-x-4 gap-y-3 p-3 sm:p-4">
                 <div className="flex min-w-[150px] flex-1 items-center gap-3 self-center">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-secondary">
-                    <ApplianceVisual name={a.name} className="h-7 w-7" />
+                    <ApplianceIcon name={a.name} className="h-8 w-8" />
                   </span>
                   <div className="min-w-0">
                     <div className="truncate text-[15px] font-medium">{a.name}</div>
@@ -764,9 +738,11 @@ function Step4(props: {
 function Results({
   data,
   onRestart,
+  onContact,
 }: {
   data: SubmitResponse;
   onRestart: () => void;
+  onContact: (channel: 'whatsapp' | 'call' | 'email') => void;
 }) {
   const r = data.result;
   const installer = data.installer;
@@ -986,14 +962,15 @@ function Results({
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-primary"
+              onClick={() => onContact('whatsapp')}
             >
               <MessageCircle className="h-4 w-4" /> Message on WhatsApp
             </a>
           )}
-          <a href={`tel:${installer.phone}`} className="btn btn-secondary">
+          <a href={`tel:${installer.phone}`} className="btn btn-secondary" onClick={() => onContact('call')}>
             <Phone className="h-4 w-4" /> Call
           </a>
-          <a href={`mailto:${installer.email}`} className="btn btn-secondary">
+          <a href={`mailto:${installer.email}`} className="btn btn-secondary" onClick={() => onContact('email')}>
             <Mail className="h-4 w-4" /> Email
           </a>
         </div>
