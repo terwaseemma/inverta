@@ -19,8 +19,19 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import type { AppliancePreset, CalculationResult } from '@inverta/shared';
-import { findPreset, formatKobo } from '@inverta/shared';
+import type { AppliancePreset, BuildingStoreys, CalculationResult, RoofType } from '@inverta/shared';
+import {
+  BUILDING_STOREY_LABELS,
+  BUILDING_STOREYS,
+  DEFAULT_SITE,
+  findPreset,
+  formatKobo,
+  MATERIALS_LINE_NAME,
+  materialsDetail,
+  ROOF_TYPE_LABELS,
+  ROOF_TYPES,
+  splitAccessories,
+} from '@inverta/shared';
 import { cn } from '@/lib/utils';
 import { ApplianceIcon } from './appliance-icons';
 import { SystemDiagram } from '@/components/proposal/SystemDiagram';
@@ -42,7 +53,7 @@ function installedFrom(data: SubmitResponse): InstalledSystem | null {
     generator: r.generator
       ? { name: `${r.generator.brand} ${r.generator.model}`, count: 1, imageUrl: img(r.generator.id), kva: r.generator.capacityKva, kwh: r.generator.storageKwh }
       : null,
-    accessories: (r.accessories ?? []).map((a) => ({ name: a.name, count: a.quantity })),
+    accessories: (r.accessories ?? []).map((a) => ({ name: a.name, count: a.quantity, yards: a.unit === 'yard' })),
   };
 }
 import { track } from '@/lib/analytics';
@@ -96,6 +107,10 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
   // Step 1 — appliances + how long they should run on battery
   const [appliances, setAppliances] = useState<SelectedAppliance[]>([]);
   const [backupHours, setBackupHours] = useState<number>(DEFAULT_BACKUP_HOURS);
+
+  // Step 2 — the building: picks mounting and sizes the cable run
+  const [roofType, setRoofType] = useState<RoofType>(DEFAULT_SITE.roofType);
+  const [storeys, setStoreys] = useState<BuildingStoreys>(DEFAULT_SITE.storeys);
 
   // Step 3 — contact
   const [customerName, setCustomerName] = useState('');
@@ -162,6 +177,8 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
           monthlyFuelCostNaira: asNumber(monthlyFuelCost),
           generatorCapacityKva: asNumber(generatorKva),
           generatorHoursPerDay: asNumber(generatorHours),
+          roofType,
+          storeys,
         }),
       });
       if (!res.ok) {
@@ -189,6 +206,8 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
       appliance_count: appliances.length,
       backup_hours: backupHours,
       gave_spending: Boolean(monthlyElectricityBill || monthlyFuelCost || generatorKva),
+      roof_type: roofType,
+      storeys,
     });
   }
 
@@ -228,6 +247,10 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
             setGeneratorKva={setGeneratorKva}
             generatorHours={generatorHours}
             setGeneratorHours={setGeneratorHours}
+            roofType={roofType}
+            setRoofType={setRoofType}
+            storeys={storeys}
+            setStoreys={setStoreys}
           />
         )}
         {step === 3 && (
@@ -292,7 +315,7 @@ export function Calculator({ slug, installerName, presets, memberCode }: Props) 
 function StepNav({ step }: { step: Step }) {
   const steps = [
     { n: 1, label: 'Appliances' },
-    { n: 2, label: 'Spending' },
+    { n: 2, label: 'Your home' },
     { n: 3, label: 'Contact' },
   ];
   return (
@@ -347,10 +370,33 @@ function Step1(props: {
   setGeneratorKva: (v: string) => void;
   generatorHours: string;
   setGeneratorHours: (v: string) => void;
+  roofType: RoofType;
+  setRoofType: (v: RoofType) => void;
+  storeys: BuildingStoreys;
+  setStoreys: (v: BuildingStoreys) => void;
 }) {
   return (
     <div className="space-y-5">
       <div>
+        <h2 className="text-[22px] font-semibold tracking-[-0.01em]">Tell us about your building</h2>
+        <p className="mt-1 text-[15px] text-muted-foreground">
+          It decides how the panels are mounted and how much cable runs from the roof.
+        </p>
+      </div>
+      <Choice
+        legend="Roof"
+        options={ROOF_TYPES.map((r) => ({ value: r, label: ROOF_TYPE_LABELS[r] }))}
+        value={props.roofType}
+        onChange={props.setRoofType}
+      />
+      <Choice
+        legend="Building height"
+        options={BUILDING_STOREYS.map((v) => ({ value: v, label: BUILDING_STOREY_LABELS[v] }))}
+        value={props.storeys}
+        onChange={props.setStoreys}
+      />
+
+      <div className="border-t pt-6">
         <h2 className="text-[22px] font-semibold tracking-[-0.01em]">What do you spend on power today?</h2>
         <p className="mt-1 text-[15px] text-muted-foreground">
           Optional, but it&apos;s how we work out what you&apos;ll save each month and how fast
@@ -405,6 +451,42 @@ function Step1(props: {
         </Field>
       </div>
     </div>
+  );
+}
+
+function Choice<T extends string>({
+  legend,
+  options,
+  value,
+  onChange,
+}: {
+  legend: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="text-[15px] font-medium">{legend}</legend>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            aria-pressed={value === o.value}
+            className={cn(
+              'min-h-11 rounded-xl border px-3 py-2 text-[15px] font-medium leading-snug transition-colors duration-150',
+              value === o.value
+                ? 'border-foreground bg-foreground text-background'
+                : 'bg-card text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -772,6 +854,7 @@ function Results({
   const installer = data.installer;
   const installed = installedFrom(data);
   const priced = Boolean(r.catalogComplete && r.panels && r.pricing);
+  const materials = splitAccessories(r.accessories ?? []);
 
   const power = r.generator
     ? `${r.generator.capacityKva} kVA all-in-one`
@@ -965,9 +1048,25 @@ function Results({
               <Line name={`${r.batteries.brand} ${r.batteries.model}`} qty={r.batteries.count} unit={r.batteries.unitPriceKobo} total={r.batteries.totalPriceKobo} />
             )}
             <Line name={`${r.panels!.brand} ${r.panels!.model}`} qty={r.panels!.count} unit={r.panels!.unitPriceKobo} total={r.panels!.totalPriceKobo} />
-            {r.accessories.map((a) => (
-              <Line key={a.id} name={a.name} qty={a.quantity} unit={a.unitPriceKobo} total={a.totalPriceKobo} />
+            {materials.itemized.map((a) => (
+              <Line
+                key={a.id}
+                name={a.name}
+                qty={a.quantity}
+                unit={a.unitPriceKobo}
+                total={a.totalPriceKobo}
+                yards={a.unit === 'yard'}
+              />
             ))}
+            {materials.bundled.length > 0 && (
+              <Line
+                name={MATERIALS_LINE_NAME}
+                detail={materialsDetail(materials.bundled)}
+                qty={1}
+                unit={materials.bundledTotalKobo}
+                total={materials.bundledTotalKobo}
+              />
+            )}
             <Line name="Installation" qty={1} unit={r.pricing!.installationFeeKobo} total={r.pricing!.installationFeeKobo} />
           </ul>
           <div className="flex items-baseline justify-between gap-4 border-t px-6 py-5">
@@ -1080,19 +1179,25 @@ function Line({
   qty,
   unit,
   total,
+  yards = false,
+  detail,
 }: {
   name: string;
   qty: number;
   unit: number;
   total: number;
+  /** The quantity is yards of cable. */
+  yards?: boolean;
+  detail?: string;
 }) {
   return (
     <li className="flex items-start justify-between gap-4 px-6 py-3.5">
       <div className="min-w-0">
         <div className="text-[15px]">{name}</div>
+        {detail && <div className="text-[13px] text-muted-foreground">{detail}</div>}
         {qty > 1 && (
           <div className="text-[13px] tabular-nums text-muted-foreground">
-            {qty} × {formatKobo(unit)}
+            {yards ? `${qty} yards × ${formatKobo(unit)}` : `${qty} × ${formatKobo(unit)}`}
           </div>
         )}
       </div>

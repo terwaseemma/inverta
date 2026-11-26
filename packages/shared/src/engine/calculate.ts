@@ -14,6 +14,7 @@ import {
   type SystemRequirements,
   type SystemPricing,
 } from './types';
+import { DEFAULT_CABLE_YARDS, DEFAULT_SITE } from '../site';
 import {
   AGGREGATE_POWER_FACTOR,
   DAYS_PER_MONTH,
@@ -420,16 +421,60 @@ function computeInstallationFee(
   return catalog.installationFeeKobo;
 }
 
-function buildAccessoryLines(catalog: EngineCatalog): AccessoryLine[] {
-  // MVP rule: include every accessory the installer stocks at quantity 1.
-  // The proposal editor is where quantities get tuned for the actual quote.
-  return catalog.accessories.map((a) => ({
-    id: a.id,
-    name: `${a.brand} ${a.model}`.trim(),
-    quantity: 1,
-    unitPriceKobo: a.priceKobo,
-    totalPriceKobo: a.priceKobo,
-  }));
+/**
+ * Accessories follow the system that was sized and the customer's building:
+ * mounting per panel and roof, cable per yard of run (from the storeys),
+ * protection and cable gauge by kVA band. An accessory outside its band or
+ * roof is left out; one whose quantity works out to zero (battery cables on an
+ * all-in-one) too. The proposal editor is still where a site visit fine-tunes.
+ */
+export function buildAccessoryLines(
+  catalog: EngineCatalog,
+  system: {
+    kva: number | null;
+    panelCount: number;
+    batteryCount: number;
+    roofType?: CalculationInput['roofType'];
+    storeys?: CalculationInput['storeys'];
+  },
+): AccessoryLine[] {
+  const roof = system.roofType ?? DEFAULT_SITE.roofType;
+  const storeys = system.storeys ?? DEFAULT_SITE.storeys;
+  const yards = (catalog.cableYards ?? DEFAULT_CABLE_YARDS)[storeys] ?? DEFAULT_CABLE_YARDS[storeys];
+
+  const lines: AccessoryLine[] = [];
+  for (const a of catalog.accessories) {
+    // A banded item needs a known size; with no unit sized it stays out.
+    if (a.minKva != null && (system.kva == null || system.kva < a.minKva)) continue;
+    if (a.maxKva != null && (system.kva == null || system.kva > a.maxKva)) continue;
+    if (a.roofTypes && a.roofTypes.length > 0 && !a.roofTypes.includes(roof)) continue;
+
+    const rule = a.qtyRule ?? 'PER_INSTALL';
+    const basis =
+      rule === 'PER_PANEL'
+        ? system.panelCount
+        : rule === 'PER_BATTERY'
+          ? system.batteryCount
+          : rule === 'PER_CABLE_YARD'
+            ? yards
+            : 1;
+    const per = a.qtyPer != null && a.qtyPer > 0 ? a.qtyPer : 1;
+    // Round up: half a rail set is a whole one bought. The epsilon keeps
+    // 6 × (1/3) from becoming 3.0000001 → 4.
+    const quantity = Math.ceil(basis * per - 1e-9);
+    if (quantity <= 0) continue;
+
+    lines.push({
+      id: a.id,
+      name: `${a.brand} ${a.model}`.trim(),
+      quantity,
+      unitPriceKobo: a.priceKobo,
+      totalPriceKobo: a.priceKobo * quantity,
+      itemized: a.itemized ?? true,
+      ...(rule === 'PER_CABLE_YARD' ? { unit: 'yard' as const } : {}),
+    });
+  }
+  return lines;
 }
 
 export function calculate(
@@ -708,7 +753,13 @@ export function calculate(
 
   // Pricing — only when the whole core system resolved from the catalog.
   // A partial total (e.g. missing batteries) would mislead the customer.
-  const accessories = buildAccessoryLines(catalog);
+  const accessories = buildAccessoryLines(catalog, {
+    kva: generator?.capacityKva ?? inverter?.capacityKva ?? null,
+    panelCount: panels?.count ?? 0,
+    batteryCount: batteries?.count ?? 0,
+    roofType: input.roofType,
+    storeys: input.storeys,
+  });
   let pricing: SystemPricing | null = null;
   const powerAndStorageKobo = generator
     ? generator.priceKobo

@@ -1,8 +1,18 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { schemas, applyMargin, nairaToKobo, stripWholesaleNote } from '@inverta/shared';
+import {
+  schemas,
+  applyMargin,
+  matchPriceList,
+  nairaToKobo,
+  previewAdjustment,
+  readPriceList,
+  stripWholesaleNote,
+} from '@inverta/shared';
+import { MAX_PRICE_LIST_CHARS, plural, readAdjustment, readMargin, scopeWhere, type PriceToolState } from '@/lib/catalog-pricing';
 import { prisma } from '@/lib/prisma';
+import { accessoryColumns, copyAccessoryRule, readAccessoryFields } from '@/lib/accessory-fields';
 import { requireInstaller } from '@/lib/auth';
 import { copyItemsToInstaller, getActiveMasterItems } from '@/lib/master-catalog';
 import { captureServer } from '@/lib/analytics-server';
@@ -49,6 +59,7 @@ export async function saveCatalogItemAction(
     priceNaira: num(formData.get('priceNaira')),
     notes: str(formData.get('notes')),
     imageUrl: String(formData.get('imageUrl') ?? ''),
+    ...readAccessoryFields(formData),
   });
 
   if (!parsed.success) {
@@ -78,6 +89,7 @@ export async function saveCatalogItemAction(
     priceKobo: nairaToKobo(d.priceNaira),
     notes: d.notes ?? null,
     imageUrl: d.imageUrl ?? null,
+    ...accessoryColumns(d),
   };
 
   const id = str(formData.get('id'));
@@ -122,9 +134,11 @@ export async function deleteCatalogItemAction(formData: FormData): Promise<void>
 
 export async function loadStarterCatalogAction(
   _prev: CatalogFormState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<CatalogFormState> {
   const { installer } = await requireInstaller();
+  const read = readMargin(formData);
+  if ('error' in read) return { fieldErrors: { margin: read.error } };
 
   const existing = await prisma.catalogItem.count({
     where: { installerId: installer.id },
@@ -135,8 +149,13 @@ export async function loadStarterCatalogAction(
 
   // Admin-curated platform catalog, or the built-in template until one exists.
   const items = await getActiveMasterItems();
-  await copyItemsToInstaller(installer.id, items);
-  await captureServer('starter_catalog_loaded', installer.id, { where: 'catalog', items: items.length });
+  await copyItemsToInstaller(installer.id, items, read.margin);
+  await captureServer('starter_catalog_loaded', installer.id, {
+    where: 'catalog',
+    items: items.length,
+    margin_mode: read.margin.marginMode,
+    margin_percent: read.margin.marginPercent ?? null,
+  });
 
   revalidatePath('/dashboard/catalog');
   revalidatePath('/dashboard');
@@ -205,6 +224,7 @@ export async function importMasterItemAction(
       // The wholesale marker describes the platform listing, not their stock.
       notes: stripWholesaleNote(master.notes),
       imageUrl: master.imageUrl,
+      ...copyAccessoryRule(master),
     },
   });
 
@@ -217,4 +237,77 @@ export async function importMasterItemAction(
   revalidatePath('/dashboard/catalog');
   revalidatePath('/dashboard');
   return { success: true };
+}
+
+// ── Bulk price tools ──────────────────────────────────────────────────────
+
+/** Raise or lower many prices at once (by %, or naira per product). */
+export async function bulkAdjustPricesAction(
+  _prev: PriceToolState,
+  formData: FormData,
+): Promise<PriceToolState> {
+  const { installer } = await requireInstaller();
+  const read = readAdjustment(formData);
+  if ('error' in read) return { error: read.error };
+
+  // Fetched within this installer's catalog, so the updates below can only
+  // ever touch their own rows.
+  const items = await prisma.catalogItem.findMany({
+    where: { installerId: installer.id, ...scopeWhere(read.scopeType, read.scopeBrand) },
+    select: { id: true, brand: true, model: true, priceKobo: true },
+  });
+  const changes = previewAdjustment(items, read.adjustment);
+  if (changes.length === 0) return { message: 'No prices changed.' };
+
+  await prisma.$transaction(
+    changes.map((c) => prisma.catalogItem.update({ where: { id: c.id }, data: { priceKobo: c.newKobo } })),
+  );
+  await captureServer('catalog_prices_adjusted', installer.id, {
+    count: changes.length,
+    direction: read.adjustment.direction,
+    mode: read.adjustment.mode,
+    value: read.adjustment.value,
+    scope_type: read.scopeType.toLowerCase(),
+    scoped_brand: read.scopeBrand !== 'ALL',
+  });
+  revalidatePath('/dashboard/catalog');
+  revalidatePath('/dashboard');
+  return { success: true, message: `Updated ${plural(changes.length, 'price')}.` };
+}
+
+/** Apply an uploaded CSV price list, matching rows to products by brand and model. */
+export async function importPriceListAction(
+  _prev: PriceToolState,
+  formData: FormData,
+): Promise<PriceToolState> {
+  const { installer } = await requireInstaller();
+  const csv = String(formData.get('csv') ?? '');
+  if (!csv.trim()) return { error: 'Choose a CSV file first.' };
+  if (csv.length > MAX_PRICE_LIST_CHARS) return { error: 'That file is too large for a price list.' };
+
+  const { rows, problems } = readPriceList(csv);
+  if (rows.length === 0) return { error: problems[0]?.message ?? 'No prices found in the file.' };
+
+  const items = await prisma.catalogItem.findMany({
+    where: { installerId: installer.id },
+    select: { id: true, brand: true, model: true, priceKobo: true },
+  });
+  const { changes, unmatched } = matchPriceList(rows, items);
+  if (changes.length > 0) {
+    await prisma.$transaction(
+      changes.map((c) => prisma.catalogItem.update({ where: { id: c.id }, data: { priceKobo: c.newKobo } })),
+    );
+  }
+  await captureServer('price_list_imported', installer.id, {
+    rows: rows.length,
+    updated: changes.length,
+    unmatched: unmatched.length,
+  });
+  revalidatePath('/dashboard/catalog');
+  revalidatePath('/dashboard');
+  const skipped = unmatched.length ? ` ${plural(unmatched.length, 'row')} didn't match a product.` : '';
+  return {
+    success: changes.length > 0,
+    message: changes.length ? `Updated ${plural(changes.length, 'price')}.${skipped}` : `No prices changed.${skipped}`,
+  };
 }

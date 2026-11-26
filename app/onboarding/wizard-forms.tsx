@@ -6,9 +6,11 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Sparkles } from 'lucide-react';
 import { slugify } from '@inverta/shared';
 import { LogoUploader } from '@/components/onboarding/LogoUploader';
+import { MarginFields } from '@/components/catalog/MarginFields';
 import { cn } from '@/lib/utils';
 import {
   finishOnboardingAction,
+  loadStarterCatalogStepAction,
   saveProfileStepAction,
   savePaymentStepAction,
   type OnboardingFormState,
@@ -231,5 +233,28 @@ function Field({
       />
       {error && <span className="text-[13px] text-destructive">{error}</span>}
     </label>
+  );
+}
+
+// Step 2 — load the starter catalog with the installer's margin on top of the
+// trade prices, so the calculator never quotes at cost.
+export function StarterCatalogForm() {
+  const [rawState, formAction] = useFormState(loadStarterCatalogStepAction, initial);
+  const state = rawState ?? initial;
+  return (
+    <form action={formAction} className="space-y-4">
+      <MarginFields error={state.fieldErrors?.margin} />
+      <StarterSubmit />
+    </form>
+  );
+}
+
+function StarterSubmit() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="btn btn-primary h-12 w-full px-7 text-base">
+      <Sparkles className="h-4 w-4" />
+      {pending ? 'Loading your catalog…' : 'Load the starter catalog'}
+    </button>
   );
 }

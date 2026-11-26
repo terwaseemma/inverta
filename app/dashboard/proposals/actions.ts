@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { schemas, nairaToKobo } from '@inverta/shared';
+import { schemas, materialsDetail, MATERIALS_LINE_NAME, nairaToKobo, splitAccessories } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
 import { captureServer, nairaBand } from '@/lib/analytics-server';
@@ -72,11 +72,22 @@ export async function createProposalFromLeadAction(formData: FormData): Promise<
       sortOrder: order++,
     });
   }
-  for (const acc of r.accessories ?? []) {
+  const materials = splitAccessories(r.accessories ?? []);
+  for (const acc of materials.itemized) {
     items.push({
       name: acc.name ?? 'Accessory',
+      ...(acc.unit === 'yard' ? { description: 'Yards' } : {}),
       quantity: acc.quantity ?? 1,
       unitPriceKobo: acc.unitPriceKobo ?? 0,
+      sortOrder: order++,
+    });
+  }
+  if (materials.bundled.length > 0) {
+    items.push({
+      name: MATERIALS_LINE_NAME,
+      description: materialsDetail(materials.bundled),
+      quantity: 1,
+      unitPriceKobo: materials.bundledTotalKobo,
       sortOrder: order++,
     });
   }

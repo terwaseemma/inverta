@@ -2,15 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { Eye, EyeOff, Package, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { Eye, EyeOff, Package, Pencil, Plus, Sparkles, Tags, Trash2, X } from 'lucide-react';
+import { PriceTools } from '@/components/catalog/PriceTools';
 import { formatKobo } from '@inverta/shared';
 import { cn } from '@/lib/utils';
 import { describePv, PvSpecFields } from '@/components/catalog/PvSpecFields';
+import { AccessoryRuleFields } from '@/components/catalog/AccessoryRuleFields';
+import { describeAccessoryRule, type AccessoryRule, type RoofType } from '@inverta/shared';
 import { ProductImageField, ProductThumb } from '@/components/uploads/ProductImageField';
 import {
+  bulkAdjustMasterPricesAction,
   deleteMasterItemAction,
+  importMasterPriceListAction,
   saveMasterItemAction,
   seedMasterCatalogAction,
+  addStarterAccessoriesAction,
   toggleMasterItemAction,
   type AdminCatalogFormState,
 } from './actions';
@@ -33,6 +39,12 @@ export interface MasterItemDto {
   priceKobo: number;
   notes: string | null;
   imageUrl: string | null;
+  qtyRule: AccessoryRule;
+  qtyPer: number;
+  minKva: number | null;
+  maxKva: number | null;
+  roofTypes: RoofType[];
+  itemized: boolean;
   isActive: boolean;
 }
 
@@ -75,12 +87,13 @@ function describeCapacity(item: MasterItemDto): string {
     case 'KWH': return `${item.capacity} kWh${sysV}`;
     case 'AH': return `${item.capacity} Ah${item.voltage ? ` · ${item.voltage}V` : ''}${sysV}`;
     case 'W': return `${item.capacity} W`;
-    default: return '';
+    default: return item.type === 'ACCESSORY' ? describeAccessoryRule(item) : '';
   }
 }
 
 export function AdminCatalogManager({ items }: { items: MasterItemDto[] }) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showPrices, setShowPrices] = useState(false);
 
   const grouped = TYPE_ORDER.map((type) => ({
     type,
@@ -89,10 +102,27 @@ export function AdminCatalogManager({ items }: { items: MasterItemDto[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-wrap justify-end gap-3">
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowPrices((v) => !v)}
+            aria-expanded={showPrices}
+            className="btn btn-secondary"
+          >
+            <Tags className="h-4 w-4" /> Update prices
+          </button>
+        )}
         {items.length === 0 && (
           <form action={seedMasterCatalogAction}>
             <SeedButton />
+          </form>
+        )}
+        {items.length > 0 && !items.some((i) => i.type === 'ACCESSORY') && (
+          <form action={addStarterAccessoriesAction}>
+            <button type="submit" className="btn btn-secondary">
+              <Sparkles className="h-4 w-4" /> Add starter accessories
+            </button>
           </form>
         )}
         <button
@@ -104,6 +134,15 @@ export function AdminCatalogManager({ items }: { items: MasterItemDto[] }) {
           {showAddForm ? 'Close' : 'Add product'}
         </button>
       </div>
+
+      {showPrices && items.length > 0 && (
+        <PriceTools
+          items={items}
+          adjustAction={bulkAdjustMasterPricesAction}
+          importAction={importMasterPriceListAction}
+          onClose={() => setShowPrices(false)}
+        />
+      )}
 
       {showAddForm && (
         <div className="card p-5">
@@ -331,6 +370,7 @@ function ItemForm({
         )}
 
         {(type === 'INVERTER' || type === 'GENERATOR') && <PvSpecFields item={item} errors={err} />}
+        {type === 'ACCESSORY' && <AccessoryRuleFields item={item} errors={err} />}
 
         {type === 'GENERATOR' && (
           <FormField

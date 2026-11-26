@@ -1,7 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, FileText, Mail, MessageCircle, Phone } from 'lucide-react';
-import { formatKobo } from '@inverta/shared';
+import {
+  BUILDING_STOREY_LABELS,
+  formatKobo,
+  ROOF_TYPE_LABELS,
+  type BuildingStoreys,
+  type RoofType,
+} from '@inverta/shared';
 import { requireOnboardedInstaller } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
@@ -123,6 +129,12 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
                 <Measure label="Daily energy" value={`${(result.dailyEnergyWh / 1000).toFixed(1)} kWh`} />
               )}
               {input.backupHours != null && <Measure label="Backup asked for" value={`${input.backupHours} hours`} />}
+              {input.roofType && ROOF_TYPE_LABELS[input.roofType as RoofType] && (
+                <Measure label="Roof" value={ROOF_TYPE_LABELS[input.roofType as RoofType]} />
+              )}
+              {input.storeys && BUILDING_STOREY_LABELS[input.storeys as BuildingStoreys] && (
+                <Measure label="Building" value={BUILDING_STOREY_LABELS[input.storeys as BuildingStoreys]} />
+              )}
             </dl>
             {result.catalogComplete === false && (
               <p className="mt-5 rounded-xl bg-secondary px-4 py-3 text-[15px]">

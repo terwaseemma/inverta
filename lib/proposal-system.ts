@@ -2,6 +2,7 @@ import 'server-only';
 
 import { prisma } from '@/lib/prisma';
 import { parseResultSnapshot } from '@/lib/lead-utils';
+import { MATERIALS_LINE_NAME } from '@inverta/shared';
 
 // What a proposal installs, assembled for the installation picture
 // (components/proposal/SystemDiagram). Read from the proposal's own line items,
@@ -41,7 +42,12 @@ export async function getInstalledSystem(proposal: {
   for (const line of proposal.items) {
     if (line.quantity <= 0 || /^installation$/i.test(line.name.trim())) continue;
     const match = byName.get(line.name.trim().toLowerCase());
-    const kind = match?.type ?? kindFromText(`${line.description ?? ''} ${line.name}`);
+    // The grouped materials line mentions batteries and panels in its
+    // description; it is never one of them.
+    const isMaterials = line.name.trim() === MATERIALS_LINE_NAME;
+    const kind = isMaterials
+      ? 'ACCESSORY'
+      : (match?.type ?? kindFromText(`${line.description ?? ''} ${line.name}`));
     const part = { name: line.name, count: line.quantity, imageUrl: match?.imageUrl ?? null };
     const capacity = match ? Number(match.capacity) : null;
 
@@ -63,7 +69,12 @@ export async function getInstalledSystem(proposal: {
         kwh: match?.storageKwh != null ? Number(match.storageKwh) : snapshot?.generator?.storageKwh ?? null,
       };
     } else if (kind === 'ACCESSORY' || kind === null) {
-      system.accessories.push({ name: line.name, count: line.quantity });
+      system.accessories.push({
+        name: line.name,
+        count: line.quantity,
+        yards: /^yards?$/i.test(line.description?.trim() ?? '') || /(per yard)/i.test(line.name),
+        detail: line.description ?? undefined,
+      });
     }
   }
 

@@ -6,6 +6,7 @@ import { schemas, slugify } from '@inverta/shared';
 import { prisma } from '@/lib/prisma';
 import { requireInstaller } from '@/lib/auth';
 import { captureServer } from '@/lib/analytics-server';
+import { readMargin } from '@/lib/catalog-pricing';
 import { sendWelcomeEmail } from '@/lib/notifications';
 import { copyItemsToInstaller, getActiveMasterItems } from '@/lib/master-catalog';
 
@@ -58,8 +59,13 @@ export async function saveProfileStepAction(
 
 // Step 2 — catalog quick-start. Loads the starter template then advances.
 // (Skipping is just a link to ?step=3 — no action needed.)
-export async function loadStarterCatalogStepAction(): Promise<void> {
+export async function loadStarterCatalogStepAction(
+  _prev: OnboardingFormState,
+  formData: FormData,
+): Promise<OnboardingFormState> {
   const { installer } = await requireInstaller();
+  const read = readMargin(formData);
+  if ('error' in read) return { fieldErrors: { margin: read.error } };
 
   const existing = await prisma.catalogItem.count({
     where: { installerId: installer.id },
@@ -67,9 +73,14 @@ export async function loadStarterCatalogStepAction(): Promise<void> {
   if (existing === 0) {
     // Admin-curated platform catalog, or the built-in template until one exists.
     const items = await getActiveMasterItems();
-    await copyItemsToInstaller(installer.id, items);
+    await copyItemsToInstaller(installer.id, items, read.margin);
     revalidatePath('/dashboard/catalog');
-    await captureServer('starter_catalog_loaded', installer.id, { where: 'onboarding', items: items.length });
+    await captureServer('starter_catalog_loaded', installer.id, {
+      where: 'onboarding',
+      items: items.length,
+      margin_mode: read.margin.marginMode,
+      margin_percent: read.margin.marginPercent ?? null,
+    });
   }
 
   await captureServer('onboarding_step_completed', installer.id, { step: 'catalog' });

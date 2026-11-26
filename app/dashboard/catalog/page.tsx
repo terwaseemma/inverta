@@ -33,6 +33,12 @@ export default async function CatalogPage() {
     priceKobo: r.priceKobo,
     notes: r.notes,
     imageUrl: r.imageUrl,
+    qtyRule: r.qtyRule,
+    qtyPer: r.qtyPer,
+    minKva: r.minKva,
+    maxKva: r.maxKva,
+    roofTypes: r.roofTypes,
+    itemized: r.itemized,
   }));
 
   // Platform products the installer hasn't imported yet (matched on

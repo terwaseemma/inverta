@@ -30,6 +30,8 @@ export type ServerEvent =
   // catalog and store
   | 'catalog_item_saved'
   | 'catalog_item_deleted'
+  | 'catalog_prices_adjusted'
+  | 'price_list_imported'
   | 'starter_catalog_loaded'
   | 'platform_product_imported'
   | 'store_product_saved'

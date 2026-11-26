@@ -14,6 +14,8 @@ import {
   type EngineCatalogItem,
   type BatteryChemistry,
   type CatalogUnit,
+  type AccessoryRule,
+  type RoofType,
 } from '@inverta/shared';
 import { getClientIp, rateLimit } from '@/lib/rate-limit';
 import { notifyNewLead } from '@/lib/notifications';
@@ -92,6 +94,12 @@ export async function POST(
       .map(toEngineItem),
     installationFeeKobo: installer.installationFeeKobo,
     installationFeePercent: installer.installationFeePercent,
+    cableYards: {
+      BUNGALOW: installer.cableYardsBungalow,
+      ONE: installer.cableYardsOneStorey,
+      TWO: installer.cableYardsTwoStorey,
+      THREE_PLUS: installer.cableYardsThreePlus,
+    },
   };
 
   // 4. Run the pure engine.
@@ -124,6 +132,8 @@ export async function POST(
             : undefined,
         generatorCapacityKva: data.generatorCapacityKva,
         generatorHoursPerDay: data.generatorHoursPerDay,
+        roofType: data.roofType,
+        storeys: data.storeys,
       },
       catalog,
     );
@@ -210,6 +220,8 @@ export async function POST(
     appliance_count: Array.isArray(data.appliances) ? data.appliances.length : null,
     backup_hours: data.backupHours ?? null,
     referral_source: data.referralSource ?? null,
+    roof_type: data.roofType ?? null,
+    storeys: data.storeys ?? null,
   });
 
   // Photos of the parts the engine picked, for the quote screen.
@@ -250,6 +262,12 @@ function toEngineItem(c: {
   chemistry: string | null;
   priceKobo: number;
   maxPvW?: number | null;
+  qtyRule?: AccessoryRule;
+  qtyPer?: number;
+  minKva?: number | null;
+  maxKva?: number | null;
+  roofTypes?: RoofType[];
+  itemized?: boolean;
 }): EngineCatalogItem {
   const capacity =
     typeof c.capacity === 'number' ? c.capacity : Number(c.capacity.toNumber());
@@ -271,5 +289,11 @@ function toEngineItem(c: {
     chemistry: c.chemistry as BatteryChemistry | null,
     priceKobo: c.priceKobo,
     maxPvW: c.maxPvW ?? null,
+    qtyRule: c.qtyRule,
+    qtyPer: c.qtyPer,
+    minKva: c.minKva ?? null,
+    maxKva: c.maxKva ?? null,
+    roofTypes: c.roofTypes ?? [],
+    itemized: c.itemized,
   };
 }

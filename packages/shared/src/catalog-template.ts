@@ -1,3 +1,5 @@
+import type { AccessoryRule, RoofType } from './site';
+
 // Starter catalog — generic items at market-typical Nigerian prices (kobo).
 // Loaded on demand ("Load starter catalog" in the dashboard) so a brand-new
 // installer can show prices on day one, then tune everything to their real
@@ -17,6 +19,13 @@ export interface StarterCatalogItem {
   chemistry?: 'LITHIUM' | 'AGM' | 'GEL';
   priceKobo: number;
   notes?: string;
+  // Accessories: how the quantity follows the system (see site.ts).
+  qtyRule?: AccessoryRule;
+  qtyPer?: number;
+  minKva?: number;
+  maxKva?: number;
+  roofTypes?: readonly RoofType[];
+  itemized?: boolean;
 }
 
 const NOTE = 'Starter estimate — replace with your real pricing.';
@@ -37,6 +46,36 @@ export function stripWholesaleNote(notes: string | null): string | null {
   const rest = notes.replace(WHOLESALE_NOTE, '').trim();
   return rest.length > 0 ? rest : null;
 }
+
+const ACC = { type: 'ACCESSORY', capacity: 1, unit: 'UNIT', notes: NOTE } as const;
+const SMALL = 6.5; // kVA: 6mm DC / 4mm AC and the smaller breakers up to here
+const LARGE = 6.6; // kVA: 10mm cable and the extra parts from here
+
+export const STARTER_ACCESSORIES: readonly StarterCatalogItem[] = [
+  // Mounting, by roof
+  { ...ACC, brand: 'Generic', model: 'Rails and clamps, sheet or tile roof (per panel)', priceKobo: 25_000_00, qtyRule: 'PER_PANEL', roofTypes: ['METAL', 'STONE_COATED'], itemized: true },
+  { ...ACC, brand: 'Generic', model: 'Tilt frame, concrete roof (per panel)', priceKobo: 40_000_00, qtyRule: 'PER_PANEL', roofTypes: ['CONCRETE'], itemized: true },
+  { ...ACC, brand: 'Generic', model: 'Ground-mount frame (per panel)', priceKobo: 55_000_00, qtyRule: 'PER_PANEL', roofTypes: ['GROUND'], itemized: true },
+
+  // Cable, by size band; DC runs the building's height
+  { ...ACC, brand: 'Generic', model: '6mm DC solar cable (per yard)', priceKobo: 1_800_00, qtyRule: 'PER_CABLE_YARD', maxKva: SMALL, itemized: true },
+  { ...ACC, brand: 'Generic', model: '10mm DC solar cable (per yard)', priceKobo: 3_500_00, qtyRule: 'PER_CABLE_YARD', minKva: LARGE, itemized: true },
+  { ...ACC, brand: 'Generic', model: '4mm AC cable (per yard)', priceKobo: 1_200_00, qtyRule: 'PER_INSTALL', qtyPer: 10, maxKva: SMALL, itemized: true },
+  { ...ACC, brand: 'Generic', model: '10mm AC cable (per yard)', priceKobo: 3_000_00, qtyRule: 'PER_INSTALL', qtyPer: 10, minKva: LARGE, itemized: true },
+
+  // Protection: listed, since breakers are where prices climb
+  { ...ACC, brand: 'Generic', model: 'DC breaker and isolator', priceKobo: 15_000_00, qtyRule: 'PER_INSTALL', maxKva: SMALL, itemized: true },
+  { ...ACC, brand: 'Generic', model: 'DC breaker and isolator, high current', priceKobo: 35_000_00, qtyRule: 'PER_INSTALL', minKva: LARGE, itemized: true },
+  { ...ACC, brand: 'Generic', model: 'Surge protectors (DC and AC)', priceKobo: 30_000_00, qtyRule: 'PER_INSTALL', itemized: true },
+  { ...ACC, brand: 'Generic', model: 'Changeover switch and AC breakers', priceKobo: 35_000_00, qtyRule: 'PER_INSTALL', itemized: true },
+  { ...ACC, brand: 'Generic', model: 'PV combiner box', priceKobo: 45_000_00, qtyRule: 'PER_INSTALL', minKva: LARGE, itemized: true },
+
+  // Installation materials: one line on the quote
+  { ...ACC, brand: 'Generic', model: 'Battery cables and lugs (per battery)', priceKobo: 15_000_00, qtyRule: 'PER_BATTERY', itemized: false },
+  { ...ACC, brand: 'Generic', model: 'MC4 connectors (pair)', priceKobo: 3_000_00, qtyRule: 'PER_INSTALL', qtyPer: 4, itemized: false },
+  { ...ACC, brand: 'Generic', model: 'Earthing rod and cable', priceKobo: 30_000_00, qtyRule: 'PER_INSTALL', itemized: false },
+  { ...ACC, brand: 'Generic', model: 'Conduit, trunking and fittings (per yard)', priceKobo: 500_00, qtyRule: 'PER_CABLE_YARD', itemized: false },
+];
 
 export const STARTER_CATALOG: readonly StarterCatalogItem[] = [
   // Inverters (hybrid, kVA)
@@ -61,8 +100,9 @@ export const STARTER_CATALOG: readonly StarterCatalogItem[] = [
   { type: 'GENERATOR', brand: 'Generic', model: 'Solar Generator 2kVA/2kWh', capacity: 2, unit: 'KVA', storageKwh: 2, priceKobo: 950_000_00, notes: NOTE },
   { type: 'GENERATOR', brand: 'Generic', model: 'Solar Generator 3.6kVA/3.8kWh', capacity: 3.6, unit: 'KVA', storageKwh: 3.8, priceKobo: 1_650_000_00, notes: NOTE },
 
-  // Accessories
-  { type: 'ACCESSORY', brand: 'Generic', model: 'Mounting kit (per panel)', capacity: 1, unit: 'UNIT', priceKobo: 25_000_00, notes: NOTE },
-  { type: 'ACCESSORY', brand: 'Generic', model: 'Cabling & connectors set', capacity: 1, unit: 'UNIT', priceKobo: 60_000_00, notes: NOTE },
-  { type: 'ACCESSORY', brand: 'Generic', model: 'DC protection box', capacity: 1, unit: 'UNIT', priceKobo: 45_000_00, notes: NOTE },
+  // Accessories. Quantities follow the sized system and the customer's
+  // building: mounting per panel and roof, cable per yard of run, gauge and
+  // protection by kVA (6mm DC / 4mm AC up to 6.5 kVA, 10mm above). Itemized
+  // ones get their own quote line; the rest form "Installation materials".
+  ...STARTER_ACCESSORIES,
 ] as const;

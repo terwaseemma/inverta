@@ -29,6 +29,12 @@ export default async function AdminCatalogPage() {
     priceKobo: r.priceKobo,
     notes: r.notes,
     imageUrl: r.imageUrl,
+    qtyRule: r.qtyRule,
+    qtyPer: r.qtyPer,
+    minKva: r.minKva,
+    maxKva: r.maxKva,
+    roofTypes: r.roofTypes,
+    itemized: r.itemized,
     isActive: r.isActive,
   }));
 

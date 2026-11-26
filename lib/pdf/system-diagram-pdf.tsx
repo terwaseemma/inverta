@@ -19,6 +19,7 @@ import {
   houseParts,
   wideLayout,
   type InstalledSystem,
+  accessoryLabel,
 } from '@/lib/system-layout';
 
 // The installation picture for the PDF proposal: the same wide layout the web
@@ -168,7 +169,7 @@ export function SystemDiagramPdf({
       {system.accessories.length > 0 && (
         <Text style={{ marginTop: 8, fontSize: 8.5, color: MUTED }}>
           <Text style={{ fontFamily: 'Helvetica-Bold', color: '#1f2a37' }}>Also fitted: </Text>
-          {system.accessories.map((a) => `${a.count > 1 ? `${a.count} × ` : ''}${a.name}`).join(' · ')}
+          {system.accessories.map(accessoryLabel).join(' · ')}
         </Text>
       )}
     </View>

@@ -49,14 +49,20 @@ export default async function SettingsPage() {
 
         <SettingsSection
           id="fee"
-          title="Installation fee"
-          description="Added to every calculator quote and new proposal, on top of your catalog prices."
+          title="Installation and cabling"
+          description="Your labour fee is added to every calculator quote and new proposal, on top of your catalog prices. A percentage is worked out on the materials: equipment and accessories."
         >
           <PricingForm
             defaults={{
               feeMode: installer.installationFeePercent != null ? 'percent' : 'flat',
               installationFeeNaira: installer.installationFeeKobo / 100,
               installationFeePercent: installer.installationFeePercent ?? 10,
+              cableYards: {
+                bungalow: installer.cableYardsBungalow,
+                one: installer.cableYardsOneStorey,
+                two: installer.cableYardsTwoStorey,
+                threePlus: installer.cableYardsThreePlus,
+              },
             }}
           />
         </SettingsSection>

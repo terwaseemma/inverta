@@ -18,6 +18,8 @@ export interface LeadInputSnapshot {
   generatorCapacityKva?: number;
   generatorHoursPerDay?: number;
   referralSource?: string;
+  roofType?: string;
+  storeys?: string;
 }
 
 export interface LeadResultSnapshot {
@@ -58,7 +60,14 @@ export interface LeadResultSnapshot {
     model?: string;
     priceKobo?: number;
   } | null;
-  accessories?: { name?: string; quantity?: number; unitPriceKobo?: number; totalPriceKobo?: number }[];
+  accessories?: {
+    name?: string;
+    quantity?: number;
+    unitPriceKobo?: number;
+    totalPriceKobo?: number;
+    itemized?: boolean;
+    unit?: 'yard';
+  }[];
   pricing?: {
     installationFeeKobo?: number;
     totalKobo?: number;

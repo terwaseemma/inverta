@@ -69,6 +69,7 @@ export function PricingForm({
     feeMode: 'flat' | 'percent';
     installationFeeNaira: number;
     installationFeePercent: number;
+    cableYards: { bungalow: number; one: number; two: number; threePlus: number };
   };
 }) {
   const [rawState, formAction] = useFormState(savePricingAction, initial);
@@ -88,7 +89,7 @@ export function PricingForm({
             className="input"
           >
             <option value="flat">Flat amount (₦)</option>
-            <option value="percent">% of system cost</option>
+            <option value="percent">% of materials cost</option>
           </select>
         </label>
         {feeMode === 'flat' ? (
@@ -101,7 +102,7 @@ export function PricingForm({
           />
         ) : (
           <Field
-            label="Installation fee (% of system cost)"
+            label="Installation fee (% of materials cost)"
             name="installationFeePercent"
             type="number"
             defaultValue={String(defaults.installationFeePercent)}
@@ -109,6 +110,18 @@ export function PricingForm({
           />
         )}
       </div>
+      <fieldset className="rounded-2xl border p-4">
+        <legend className="px-1 text-[15px] font-medium">Cable from roof to inverter (yards)</legend>
+        <p className="mb-3 text-[13px] text-muted-foreground">
+          Customers pick their building in the calculator. Accessories priced per yard of cable use these lengths.
+        </p>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Field label="Bungalow" name="cableYardsBungalow" type="number" defaultValue={String(defaults.cableYards.bungalow)} error={err.cableYardsBungalow} />
+          <Field label="1 storey" name="cableYardsOneStorey" type="number" defaultValue={String(defaults.cableYards.one)} error={err.cableYardsOneStorey} />
+          <Field label="2 storeys" name="cableYardsTwoStorey" type="number" defaultValue={String(defaults.cableYards.two)} error={err.cableYardsTwoStorey} />
+          <Field label="3 storeys +" name="cableYardsThreePlus" type="number" defaultValue={String(defaults.cableYards.threePlus)} error={err.cableYardsThreePlus} />
+        </div>
+      </fieldset>
       <FormFooter state={state} label="Save pricing" />
     </form>
   );

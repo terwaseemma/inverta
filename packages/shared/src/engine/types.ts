@@ -1,6 +1,9 @@
+import type { AccessoryRule, BuildingStoreys, CableYards, RoofType } from '../site';
+
 export type BatteryPreference = 'lithium' | 'agm' | 'none';
 export type CatalogUnit = 'KVA' | 'KWH' | 'AH' | 'W' | 'UNIT';
 export type BatteryChemistry = 'LITHIUM' | 'AGM' | 'GEL';
+
 
 export interface EngineAppliance {
   name: string;
@@ -43,6 +46,19 @@ export interface EngineCatalogItem {
   maxPvW?: number | null;
   chemistry?: BatteryChemistry | null;
   priceKobo: number;
+
+  // Accessories only. Missing fields mean the old behaviour: one per
+  // installation, any system, any roof, its own line on the quote.
+  qtyRule?: AccessoryRule | null;
+  /** Quantity per unit of the rule's basis (0.5 per panel = one per two). */
+  qtyPer?: number | null;
+  /** Applies only to systems of at least / at most this many kVA. */
+  minKva?: number | null;
+  maxKva?: number | null;
+  /** Applies only to these roofs. Empty = every roof. */
+  roofTypes?: readonly RoofType[] | null;
+  /** False rolls it into one "Installation materials" line on quotes. */
+  itemized?: boolean | null;
 }
 
 export interface EngineCatalog {
@@ -56,6 +72,8 @@ export interface EngineCatalog {
   installationFeeKobo: number;
   /** If set, replaces the flat fee with a percentage of system cost. */
   installationFeePercent?: number | null;
+  /** Roof-to-inverter cable, by building height. Defaults apply when absent. */
+  cableYards?: CableYards | null;
 }
 
 export interface CalculationInput {
@@ -71,6 +89,10 @@ export interface CalculationInput {
   monthlyFuelCostKobo?: number;
   generatorCapacityKva?: number;
   generatorHoursPerDay?: number;
+
+  /** The customer's building: picks mounting and sizes cable runs. */
+  roofType?: RoofType;
+  storeys?: BuildingStoreys;
 }
 
 /**
@@ -140,6 +162,10 @@ export interface AccessoryLine {
   quantity: number;
   unitPriceKobo: number;
   totalPriceKobo: number;
+  /** Its own line on the quote; false = part of "Installation materials". */
+  itemized: boolean;
+  /** Set when the quantity is yards of cable. */
+  unit?: 'yard';
 }
 
 /** Only present when every core category (inverter/battery/panel) resolved. */

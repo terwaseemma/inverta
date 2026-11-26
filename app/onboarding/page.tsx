@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Check, CreditCard, Package, Rocket, Sparkles, User } from 'lucide-react';
+import { Check, CreditCard, Package, Rocket, User } from 'lucide-react';
 import { requireInstaller } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAppUrl } from '@/lib/app-url';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { cn } from '@/lib/utils';
-import { ProfileStepForm, PaymentStepForm, FinishForm } from './wizard-forms';
-import { loadStarterCatalogStepAction } from './actions';
+import { ProfileStepForm, PaymentStepForm, FinishForm, StarterCatalogForm } from './wizard-forms';
 
 export const metadata = { title: 'Onboarding · Inverta' };
 
@@ -105,7 +104,7 @@ export default async function OnboardingPage({
               <>
                 <StepHeading
                   title="Stock your catalog"
-                  sub="Your calculator quotes real prices from your catalog. Load ours to start — its prices are trade cost, so set your own before customers see them — or skip and add products later."
+                  sub="Your calculator quotes real prices from your catalog. Load ours to start: its prices are trade cost, so add your margin and every product is priced with it. Or skip and add products later."
                 />
                 {catalogCount > 0 ? (
                   <div className="space-y-5">
@@ -127,15 +126,7 @@ export default async function OnboardingPage({
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    <form action={loadStarterCatalogStepAction}>
-                      <button
-                        type="submit"
-                        className="btn btn-primary h-12 px-7 text-base w-full"
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        Load the starter catalog
-                      </button>
-                    </form>
+                    <StarterCatalogForm />
                     <p className="text-center text-[13px] text-muted-foreground">
                       Without a catalog, your calculator shows customers their system
                       sizing but no prices — leads are still captured either way.

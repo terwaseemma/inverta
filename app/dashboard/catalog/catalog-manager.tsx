@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { Package, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { Package, Pencil, Plus, Sparkles, Tags, Trash2, X } from 'lucide-react';
+import { PriceTools } from '@/components/catalog/PriceTools';
+import { MarginFields } from '@/components/catalog/MarginFields';
 import { formatKobo } from '@inverta/shared';
 import { cn } from '@/lib/utils';
 import { describePv, PvSpecFields } from '@/components/catalog/PvSpecFields';
+import { AccessoryRuleFields } from '@/components/catalog/AccessoryRuleFields';
+import { describeAccessoryRule, type AccessoryRule, type RoofType } from '@inverta/shared';
 import { ProductImageField, ProductThumb } from '@/components/uploads/ProductImageField';
 import {
   deleteCatalogItemAction,
   loadStarterCatalogAction,
+  bulkAdjustPricesAction,
+  importPriceListAction,
   saveCatalogItemAction,
   type CatalogFormState,
 } from './actions';
@@ -32,6 +38,12 @@ export interface CatalogItemDto {
   priceKobo: number;
   notes: string | null;
   imageUrl: string | null;
+  qtyRule: AccessoryRule;
+  qtyPer: number;
+  minKva: number | null;
+  maxKva: number | null;
+  roofTypes: RoofType[];
+  itemized: boolean;
 }
 
 type ItemType = CatalogItemDto['type'];
@@ -73,12 +85,13 @@ function describeCapacity(item: CatalogItemDto): string {
     case 'KWH': return `${item.capacity} kWh${sysV}`;
     case 'AH': return `${item.capacity} Ah${item.voltage ? ` · ${item.voltage}V` : ''}${sysV}`;
     case 'W': return `${item.capacity} W`;
-    default: return '';
+    default: return item.type === 'ACCESSORY' ? describeAccessoryRule(item) : '';
   }
 }
 
 export function CatalogManager({ items }: { items: CatalogItemDto[] }) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showPrices, setShowPrices] = useState(false);
 
   const grouped = TYPE_ORDER.map((type) => ({
     type,
@@ -114,6 +127,17 @@ export function CatalogManager({ items }: { items: CatalogItemDto[] }) {
             </>
           )}
         </p>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowPrices((v) => !v)}
+            aria-expanded={showPrices}
+            className="btn btn-secondary"
+          >
+            <Tags className="h-4 w-4" /> Update prices
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setShowAddForm((v) => !v)}
@@ -125,7 +149,17 @@ export function CatalogManager({ items }: { items: CatalogItemDto[] }) {
           {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showAddForm ? 'Close' : 'Add product'}
         </button>
+        </div>
       </div>
+
+      {showPrices && items.length > 0 && (
+        <PriceTools
+          items={items}
+          adjustAction={bulkAdjustPricesAction}
+          importAction={importPriceListAction}
+          onClose={() => setShowPrices(false)}
+        />
+      )}
 
       {showAddForm && (
         <div className="card p-5">
@@ -166,21 +200,22 @@ function EmptyState({ onAddManually }: { onAddManually: () => void }) {
       <h2 className="mt-4 text-[17px] font-semibold">Your catalog is empty</h2>
       <p className="mt-1.5 max-w-md text-[15px] leading-relaxed text-muted-foreground">
         Until you add products, your calculator shows customers their system sizing
-        without prices. Start with our template at market-typical prices (edit them
-        anytime), or add your own products one by one.
+        without prices. Start with our template, priced at trade cost plus your
+        margin, or add your own products one by one.
       </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <form action={formAction}>
+      <form action={formAction} className="mt-6 w-full max-w-sm space-y-4">
+        <MarginFields error={state.fieldErrors?.margin} />
+        <div className="flex flex-wrap justify-center gap-3">
           <StarterButton />
-        </form>
-        <button
-          type="button"
-          onClick={onAddManually}
-          className="btn btn-secondary"
-        >
-          Add products manually
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={onAddManually}
+            className="btn btn-secondary"
+          >
+            Add products manually
+          </button>
+        </div>
+      </form>
       {state.error && (
         <p role="alert" className="mt-3 text-[15px] text-destructive">{state.error}</p>
       )}
@@ -368,6 +403,7 @@ function ItemForm({
         )}
 
         {(type === 'INVERTER' || type === 'GENERATOR') && <PvSpecFields item={item} errors={err} />}
+        {type === 'ACCESSORY' && <AccessoryRuleFields item={item} errors={err} />}
 
         {type === 'GENERATOR' && (
           <FormField

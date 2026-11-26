@@ -10,6 +10,7 @@ import {
   wideLayout,
   type Box,
   type InstalledSystem,
+  accessoryLabel,
 } from '@/lib/system-layout';
 
 // The system, assembled as it will be installed, computed live from its counts
@@ -34,8 +35,7 @@ export function SystemDiagram({ system }: { system: InstalledSystem }) {
           <span className="font-medium text-foreground">Also fitted:</span>
           {system.accessories.map((a) => (
             <span key={a.name} className="chip">
-              {a.count > 1 ? `${a.count} × ` : ''}
-              {a.name}
+              {accessoryLabel(a)}
             </span>
           ))}
         </figcaption>

@@ -16,7 +16,14 @@ export type InstalledSystem = {
   /** An all-in-one replaces the inverter and batteries. */
   generator: (SystemPart & { kva: number | null; kwh: number | null }) | null;
   /** Mounting, cabling, protection, listed under the picture. */
-  accessories: { name: string; count: number }[];
+  accessories: {
+    name: string;
+    count: number;
+    /** The count is yards of cable. */
+    yards?: boolean;
+    /** What a grouped line holds ("Installation materials"). */
+    detail?: string;
+  }[];
 };
 
 export type Box = { x: number; y: number; w: number; h: number };
@@ -60,7 +67,15 @@ const MAX_PANELS_DRAWN = 18;
 export const kwpOf = (s: InstalledSystem) =>
   s.panels?.watts ? Math.round((s.panels.count * s.panels.watts) / 100) / 10 : null;
 export const clip = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
-const hasAccessory = (s: InstalledSystem, re: RegExp) => s.accessories.some((a) => re.test(a.name));
+const hasAccessory = (s: InstalledSystem, re: RegExp) =>
+  s.accessories.some((a) => re.test(`${a.name} ${a.detail ?? ''}`));
+
+/** "25 yd 6mm DC solar cable", "6 × Rails and clamps", for the list under the picture. */
+export function accessoryLabel(a: InstalledSystem['accessories'][number]): string {
+  const name = a.name.replace(/^Generics+/i, '').replace(/s*(per [^)]*)s*$/i, '');
+  if (a.yards) return `${a.count} yd ${name}`;
+  return `${a.count > 1 ? `${a.count} × ` : ''}${name}`;
+}
 export const hasDcProtection = (s: InstalledSystem) =>
   hasAccessory(s, /protect|isolat|breaker|dc box|combiner/i);
 

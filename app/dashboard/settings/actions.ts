@@ -83,6 +83,10 @@ export async function savePricingAction(
     feeMode: formData.get('feeMode'),
     installationFeeNaira: num(formData.get('installationFeeNaira')),
     installationFeePercent: num(formData.get('installationFeePercent')),
+    cableYardsBungalow: num(formData.get('cableYardsBungalow')),
+    cableYardsOneStorey: num(formData.get('cableYardsOneStorey')),
+    cableYardsTwoStorey: num(formData.get('cableYardsTwoStorey')),
+    cableYardsThreePlus: num(formData.get('cableYardsThreePlus')),
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error.issues) };
   const d = parsed.data;
@@ -90,6 +94,10 @@ export async function savePricingAction(
   await prisma.installer.update({
     where: { id: installer.id },
     data: {
+      cableYardsBungalow: d.cableYardsBungalow,
+      cableYardsOneStorey: d.cableYardsOneStorey,
+      cableYardsTwoStorey: d.cableYardsTwoStorey,
+      cableYardsThreePlus: d.cableYardsThreePlus,
       installationFeeKobo:
         d.feeMode === 'flat' ? nairaToKobo(d.installationFeeNaira ?? 0) : 0,
       installationFeePercent:

@@ -1,7 +1,15 @@
 import 'server-only';
 
 import { prisma } from '@/lib/prisma';
-import { STARTER_CATALOG, stripWholesaleNote } from '@inverta/shared';
+import {
+  applyMargin,
+  STARTER_CATALOG,
+  stripWholesaleNote,
+  type AccessoryRule,
+  type ImportMargin,
+  type RoofType,
+} from '@inverta/shared';
+import { copyAccessoryRule } from '@/lib/accessory-fields';
 
 // The platform catalog is the admin-managed source installers copy from.
 // Until admins publish anything, the built-in starter template acts as the
@@ -24,6 +32,12 @@ export interface MasterItemData {
   maxPvVoc: number | null;
   mpptCount: number | null;
   maxPvCurrentA: number | null;
+  qtyRule: AccessoryRule;
+  qtyPer: number;
+  minKva: number | null;
+  maxKva: number | null;
+  roofTypes: RoofType[];
+  itemized: boolean;
 }
 
 export async function getActiveMasterItems(): Promise<MasterItemData[]> {
@@ -50,6 +64,7 @@ export async function getActiveMasterItems(): Promise<MasterItemData[]> {
       maxPvVoc: r.maxPvVoc,
       mpptCount: r.mpptCount,
       maxPvCurrentA: r.maxPvCurrentA == null ? null : Number(r.maxPvCurrentA),
+      ...copyAccessoryRule(r),
     }));
   }
 
@@ -70,6 +85,12 @@ export async function getActiveMasterItems(): Promise<MasterItemData[]> {
     maxPvVoc: null,
     mpptCount: null,
     maxPvCurrentA: null,
+    qtyRule: s.qtyRule ?? 'PER_INSTALL',
+    qtyPer: s.qtyPer ?? 1,
+    minKva: s.minKva ?? null,
+    maxKva: s.maxKva ?? null,
+    roofTypes: [...(s.roofTypes ?? [])],
+    itemized: s.itemized ?? true,
   }));
 }
 
@@ -80,14 +101,15 @@ export async function getActiveMasterItems(): Promise<MasterItemData[]> {
  * bulk paths (onboarding, "load starter catalog") cannot leak it into an
  * installer's own stock the way the single-item import once did.
  *
- * NOTE: these bulk paths copy the trade price UNCHANGED — they have no UI
- * moment at which to ask for a margin, unlike the single-item import. Since
- * the engine applies no uplift, a catalog seeded this way quotes at cost until
- * the installer edits the prices.
+ * Prices are trade cost plus `margin`, asked for wherever the starter catalog
+ * is loaded (onboarding, empty catalog), the same rule as the single-item
+ * import. The engine applies no uplift of its own, so without a margin a
+ * catalog seeded this way would quote at cost.
  */
 export async function copyItemsToInstaller(
   installerId: string,
   items: MasterItemData[],
+  margin?: ImportMargin,
 ): Promise<number> {
   if (items.length === 0) return 0;
   const { count } = await prisma.catalogItem.createMany({
@@ -102,13 +124,14 @@ export async function copyItemsToInstaller(
       systemVoltage: item.systemVoltage,
       storageKwh: item.storageKwh,
       chemistry: item.chemistry,
-      priceKobo: item.priceKobo,
+      priceKobo: margin ? applyMargin(item.priceKobo, margin) : item.priceKobo,
       notes: stripWholesaleNote(item.notes),
       imageUrl: item.imageUrl,
       maxPvW: item.maxPvW,
       maxPvVoc: item.maxPvVoc,
       mpptCount: item.mpptCount,
       maxPvCurrentA: item.maxPvCurrentA,
+      ...copyAccessoryRule(item),
     })),
   });
   return count;

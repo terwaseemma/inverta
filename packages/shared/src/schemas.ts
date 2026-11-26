@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ACCESSORY_RULES, BUILDING_STOREYS, ROOF_TYPES } from './site';
 
 // Single source of truth for form/API I/O across the platform.
 // Server actions re-run these server-side so we never trust the client.
@@ -86,8 +87,22 @@ export const catalogItemSchema = z
     priceNaira: z.number().min(0, 'Price is required').max(1_000_000_000),
     notes: z.string().max(200).optional(),
     imageUrl: z.string().url().optional().or(z.literal('').transform(() => undefined)),
+    // Accessories: how the quantity follows the system (see site.ts).
+    qtyRule: z.enum(ACCESSORY_RULES).optional(),
+    qtyPer: z.number().positive('Enter a quantity above zero.').max(1000).optional(),
+    minKva: z.number().min(0).max(1000).optional(),
+    maxKva: z.number().positive().max(1000).optional(),
+    roofTypes: z.array(z.enum(ROOF_TYPES)).optional(),
+    itemized: z.boolean().optional(),
   })
   .superRefine((val, ctx) => {
+    if (val.minKva != null && val.maxKva != null && val.minKva > val.maxKva) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['maxKva'],
+        message: 'The largest size must be at least the smallest.',
+      });
+    }
     const unitByType: Record<string, string[]> = {
       INVERTER: ['KVA'],
       PANEL: ['W'],
@@ -175,6 +190,11 @@ export const settingsPricingSchema = z
     feeMode: z.enum(['flat', 'percent']),
     installationFeeNaira: z.number().min(0).max(1_000_000_000).optional(),
     installationFeePercent: z.number().min(0).max(100).optional(),
+    // Roof-to-inverter cable by building height, in yards.
+    cableYardsBungalow: z.number().int('Use whole yards.').min(0).max(1000),
+    cableYardsOneStorey: z.number().int('Use whole yards.').min(0).max(1000),
+    cableYardsTwoStorey: z.number().int('Use whole yards.').min(0).max(1000),
+    cableYardsThreePlus: z.number().int('Use whole yards.').min(0).max(1000),
   })
   .superRefine((val, ctx) => {
     if (val.feeMode === 'flat' && val.installationFeeNaira == null) {
@@ -280,7 +300,32 @@ export const calculatorSubmissionSchema = z.object({
   monthlyFuelCostNaira: z.number().min(0).optional(),
   generatorCapacityKva: z.number().min(0).optional(),
   generatorHoursPerDay: z.number().min(0).max(24).optional(),
+
+  // Step 2 — the building, for mounting and cable runs
+  roofType: z.enum(ROOF_TYPES).optional(),
+  storeys: z.enum(BUILDING_STOREYS).optional(),
 });
 
 export type CalculatorSubmission = z.infer<typeof calculatorSubmissionSchema>;
 export type ApplianceInput = z.infer<typeof applianceSchema>;
+
+// Bulk price adjustment (catalog "Update prices"). Scope "ALL" means every
+// type / every brand.
+export const bulkPriceAdjustSchema = z
+  .object({
+    scopeType: z.string().min(1),
+    scopeBrand: z.string().min(1),
+    direction: z.enum(['up', 'down']),
+    mode: z.enum(['percent', 'amount']),
+    value: z.number({ invalid_type_error: 'Enter an amount.' }).positive('Enter an amount above zero.').max(1_000_000_000),
+    roundToNaira: z.number().int().min(0).max(100_000),
+  })
+  .superRefine((v, ctx) => {
+    if (v.mode === 'percent' && v.value > 500) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Keep it at 500% or less.' });
+    }
+    if (v.mode === 'percent' && v.direction === 'down' && v.value >= 100) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'A cut must be under 100%.' });
+    }
+  });
+export type BulkPriceAdjustInput = z.infer<typeof bulkPriceAdjustSchema>;
