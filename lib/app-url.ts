@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { headers } from 'next/headers';
+import { siteUrl } from '@/lib/site-url';
 
 // Resolve the app's public origin from the incoming request, so links are
 // correct on any domain (inverta.app, Vercel previews, localhost) without
@@ -20,5 +21,5 @@ export function getAppUrl(): string {
   } catch {
     // headers() throws outside a request scope — fall through to env.
   }
-  return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  return siteUrl();
 }

@@ -3,6 +3,7 @@ import { Instrument_Sans } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { PostHogProvider } from '@/components/analytics/PostHogProvider';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { siteUrl } from '@/lib/site-url';
 import './globals.css';
 
 // Instrument Sans: a plain grotesk with tabular figures, so prices and kWh
@@ -23,7 +24,7 @@ export const viewport: Viewport = {
 // metadataBase makes the generated link-preview image URLs absolute, which
 // WhatsApp, X and LinkedIn need to fetch them.
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(siteUrl()),
   title: 'Inverta — Solar sales made easy',
   description:
     'Your own solar calculator: customers size their system and see your price in two minutes, and you get the lead.',
